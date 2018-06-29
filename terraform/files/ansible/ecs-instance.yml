@@ -231,6 +231,7 @@
             ; ldap_group_nesting_level = 0
             ldap_use_tokengroups = true
             ; ldap_deref_threshold = 0
+            ldap_user_ssh_public_key = uiucEduSSHPublicKey
 
             ldap_default_bind_dn = {{ sss_bind_user }}
             ldap_default_authtok = {{ sss_bind_pass }}
@@ -402,6 +403,9 @@
             #	AllowTcpForwarding no
             #	PermitTTY no
             #	ForceCommand cvs server[root@sbutler1-vault-a ssh]#
+            Match Group "domain users"
+                AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
+                AuthorizedKeysCommandRunAs nobody
 
       notify: ssh | reload
 

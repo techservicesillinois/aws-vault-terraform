@@ -3,13 +3,17 @@
 # =========================================================
 
 locals {
-    vault_server_ansible = {
+    vault_server_ansible_extravars = {
         sss_bind_user = "${var.sss_bind_user}"
         sss_allow_groups = "${join(", ", var.vault_server_admin_groups)}"
 
         ssh_allow_groups = "${join(" ", formatlist("\"%s\"", var.vault_server_admin_groups))}"
+
+        host_key_checking = false
     }
 }
+
+
 # =========================================================
 # Data
 # =========================================================
@@ -210,7 +214,12 @@ resource "null_resource" "vaule_server_config" {
         "aws_eip_association.vault_server"
     ]
 
+    triggers {
+        ansible_md5 = "${md5(file("${path.module}/files/ansible/ecs-instance.yml"))}"
+        ansible_extravars = "${jsonencode(local.vault_server_ansible_extravars)}"
+    }
+
     provisioner "local-exec" {
-        command = "ansible-playbook -i '${join(",", aws_eip.vault_server.*.public_ip)},' -e '${jsonencode(local.vault_server_ansible)}' '${path.module}/files/ansible/ecs-instance.yml'"
+        command = "ansible-playbook -i '${join(",", aws_eip.vault_server.*.public_ip)},' -e '${jsonencode(local.vault_server_ansible_extravars)}' '${path.module}/files/ansible/ecs-instance.yml'"
     }
 }
