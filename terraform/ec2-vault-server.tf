@@ -213,7 +213,7 @@ resource "aws_eip_association" "vault_server" {
     instance_id = "${element(aws_instance.vault_server.*.id, count.index)}"
 }
 
-resource "null_resource" "vaule_server_config" {
+resource "null_resource" "vault_server_config" {
     depends_on = [
         "aws_eip_association.vault_server"
     ]

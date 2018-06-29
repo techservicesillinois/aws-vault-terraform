@@ -76,16 +76,18 @@
         - cron.d
     - name: cis | ensure at/cron is restricted to authorized users (allow)
       copy:
-        dest: /etc/cron.allow
+        dest: /etc/{{ item }}.allow
         mode: 0600
         owner: root
         group: root
         content: |
             ec2-user
+      with_items: [cron, at]
     - name: cis | ensure at/cron is restricted to authorized users (deny)
       file:
-        path: /etc/cron.deny
+        path: /etc/{{ item }}.deny
         state: absent
+      with_items: [cron, at]
     - name: cis | ensure issue and issue.net files
       copy:
           dest: /etc/{{ item }}
@@ -261,6 +263,7 @@
           regexp: "^%\\Q{{ item|replace(' ', '\\ ')|lower }}\\E\\s"
           line: "%{{ item|replace(' ', '\\ ')|lower }} ALL=(ALL) NOPASSWD: ALL"
       with_items: "{{ sudo_admin_groups }}"
+      validate: /usr/sbin/visudo -cf %s
 
     - name: ssh | configure
       copy:
@@ -416,6 +419,7 @@
             #	ForceCommand cvs server[root@sbutler1-vault-a ssh]#
             Match Group "domain users"
                 AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
+      validate: /usr/sbin/sshd -t -f %s
       notify: ssh | reload
 
     - name: awslogs | install
