@@ -2,10 +2,6 @@
 - hosts: all
   remote_user: ec2-user
   become: yes
-  vars_prompt:
-    - name: sss_bind_pass
-      prompt: Enter the password for the bind user of SSS
-      private: yes
 
   tasks:
     - name: cis | disable unused filesystems
