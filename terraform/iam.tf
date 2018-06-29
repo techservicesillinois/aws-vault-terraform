@@ -8,7 +8,7 @@
 
 resource "aws_kms_key" "vault" {
     description = "Protects all vault secure information."
-    deletion_window_in_days = 7
+    deletion_window_in_days = "${lower(var.environment) == "production" ? 30 : 7}"
 
     tags {
         Service = "${var.service}"
@@ -31,7 +31,7 @@ resource "aws_secretsmanager_secret" "vault_master" {
     description = "Segmented master keys for unsealing vault."
 
     kms_key_id = "${aws_kms_key.vault.id}"
-    recovery_window_in_days = 7
+    recovery_window_in_days = "${lower(var.environment) == "production" ? 30 : 7}"
 
     tags {
         Service = "${var.service}"
