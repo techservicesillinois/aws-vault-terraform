@@ -4,6 +4,9 @@
 
 locals {
     vault_server_ansible_extravars = {
+        project = "${var.project}"
+        region = "${data.aws_region.current.name}"
+
         sss_bind_user = "${element(split("\n", data.aws_secretsmanager_secret_version.ldap_query.secret_string), 0)}"
         sss_bind_pass = "${element(split("\n", data.aws_secretsmanager_secret_version.ldap_query.secret_string), 1)}"
         sss_allow_groups = "${lower(join(", ", var.vault_server_admin_groups))}"

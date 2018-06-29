@@ -404,7 +404,86 @@
                 AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
       notify: ssh | reload
 
+    - name: awslogs | install
+      yum:
+          name: awslogs
+          state: present
+    - name: awslogs | enable at startup
+      service:
+        name: awslogs
+        enabled: yes
+    - name: awslogs | configure (awscli.conf)
+      copy:
+        dest: /etc/awslogs/awscli.conf
+        mode: 0600
+        owner: root
+        group: root
+        content: |
+            [plugins]
+            cwlogs = cwlogs
+            [default]
+            region = {{ region }}
+    - name: awslogs | configure (awslogs.conf)
+      copy:
+        dest: /etc/awslogs/awslogs.conf
+        mode: 0644
+        owner: root
+        group: root
+        content: |
+            [general]
+            # Path to the CloudWatch Logs agent's state file. The agent uses this file to maintain
+            # client side state across its executions.
+            state_file = /var/lib/awslogs/agent-state
+
+            [/var/log/messages]
+            time_zone = UTC
+            datetime_format = %b %d %H:%M:%S
+            file = /var/log/messages
+            buffer_duration = 5000
+            log_stream_name = {instance_id}
+            initial_position = start_of_file
+            log_group_name = /{{ project }}/ec2-instances/var/log/messages
+
+            [/var/log/secure]
+            time_zone = UTC
+            datetime_format = %b %d %H:%M:%S
+            file = /var/log/secure
+            buffer_duration = 5000
+            log_stream_name = {instance_id}
+            initial_position = start_of_file
+            log_group_name = /{{ project }}/ec2-instances/var/log/secure
+
+            [/var/log/cron]
+            time_zone = UTC
+            datetime_format = %b %d %H:%M:%S
+            file = /var/log/cron
+            buffer_duration = 5000
+            log_stream_name = {instance_id}
+            initial_position = start_of_file
+            log_group_name = /{{ project }}/ec2-instances/var/log/cron
+
+            [/var/log/docker]
+            datetime_format = time="%Y-%m-%dT%H:%M:%S.%fZ"
+            file = /var/log/docker
+            buffer_duration = 5000
+            log_stream_name = {instance_id}
+            initial_position = start_of_file
+            log_group_name = /{{ project }}/ec2-instances/var/log/docker
+
+            [/var/log/ecs/ecs-agent.log]
+            datetime_format = %Y-%m-%dT%H:%M:%SZ
+            file = /var/log/ecs/ecs-agent.log.*
+            buffer_duration = 5000
+            log_stream_name = {instance_id}
+            initial_position = start_of_file
+            log_group_name = /{{ project }}/ec2-instances/var/log/ecs/ecs-agent.log
+      notify: awslogs | restart
+
   handlers:
+    - name: awslogs | restart
+      service:
+        name: awslogs
+        state: restarted
     - name: ntp | restart
       service:
         name: ntpd
