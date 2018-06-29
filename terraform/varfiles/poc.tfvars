@@ -10,7 +10,7 @@ key_file = "~/.ssh/main-work"
 deploy_bucket = "uiuc-sbutler1-sandbox"
 deploy_prefix = "vault/"
 
-sss_bind_user = "CITES-ICS-LDAPQuery@ad.uillinois.edu"
+ldap_query_secret = "sbutler1-vault/ldap"
 
 vault_server_admin_groups = [
     "ICS Admins",

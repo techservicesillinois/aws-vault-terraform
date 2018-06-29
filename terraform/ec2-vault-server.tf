@@ -4,12 +4,11 @@
 
 locals {
     vault_server_ansible_extravars = {
-        sss_bind_user = "${var.sss_bind_user}"
-        sss_allow_groups = "${join(", ", var.vault_server_admin_groups)}"
+        sss_bind_user = "${element(split("\n", data.aws_secretsmanager_secret_version.ldap_query.secret_string), 0)}"
+        sss_bind_pass = "${element(split("\n", data.aws_secretsmanager_secret_version.ldap_query.secret_string), 1)}"
+        sss_allow_groups = "${lower(join(", ", var.vault_server_admin_groups))}"
 
-        ssh_allow_groups = "${join(" ", formatlist("\"%s\"", var.vault_server_admin_groups))}"
-
-        host_key_checking = false
+        ssh_allow_groups = "${lower(join(" ", formatlist("\"%s\"", var.vault_server_admin_groups)))}"
     }
 }
 
@@ -221,5 +220,9 @@ resource "null_resource" "vaule_server_config" {
 
     provisioner "local-exec" {
         command = "ansible-playbook -i '${join(",", aws_eip.vault_server.*.public_ip)},' -e '${jsonencode(local.vault_server_ansible_extravars)}' '${path.module}/files/ansible/ecs-instance.yml'"
+
+        environment {
+            ANSIBLE_HOST_KEY_CHECKING = "False"
+        }
     }
 }

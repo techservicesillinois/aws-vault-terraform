@@ -196,7 +196,7 @@
         content: |
             [sssd]
             domains = LOCAL, ad.uillinois.edu
-            services = nss, pam
+            services = nss, pam, ssh
             config_file_version = 2
 
             [nss]
@@ -325,7 +325,7 @@
             IgnoreRhosts yes
 
             # EC2 uses keys for remote access
-            PasswordAuthentication yes
+            PasswordAuthentication no
             PermitEmptyPasswords no
 
             # Change to no to disable s/key passwords
@@ -373,7 +373,7 @@
             UsePrivilegeSeparation sandbox
             PermitUserEnvironment no
             #Compression delayed
-            ClientAliveInterval 300
+            ClientAliveInterval 3600
             ClientAliveCountMax 0
             #ShowPatchLevel no
             #UseDNS yes
@@ -393,6 +393,7 @@
             AcceptEnv XMODIFIERS
 
             AllowGroups {{ ssh_allow_groups }} wheel
+            AuthorizedKeysCommandUser nobody
 
             # override default of no subsystems
             Subsystem sftp	/usr/libexec/openssh/sftp-server
@@ -405,8 +406,6 @@
             #	ForceCommand cvs server[root@sbutler1-vault-a ssh]#
             Match Group "domain users"
                 AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
-                AuthorizedKeysCommandRunAs nobody
-
       notify: ssh | reload
 
   handlers:

@@ -41,3 +41,8 @@ data "aws_iam_role" "appautoscaling_dynamodb" {
 
 
 data "aws_region" "current" {}
+
+
+data "aws_secretsmanager_secret_version" "ldap_query" {
+    secret_id = "${var.ldap_query_secret}"
+}

@@ -88,14 +88,9 @@ variable "secrets" {
     }
 }
 
-
-# =========================================================
-# SSSD Generic Settings
-# =========================================================
-
-variable "sss_bind_user" {
+variable "ldap_query_secret" {
     type = "string"
-    description = "AD user to bind as for SSS operations (tokenGroup access required)."
+    description = "Secrets Manager secret ID or name for LDAP querying; first line is the username and second the password."
 }
 
 
