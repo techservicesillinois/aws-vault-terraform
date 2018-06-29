@@ -10,6 +10,11 @@ key_file = "~/.ssh/main-work"
 deploy_bucket = "uiuc-sbutler1-sandbox"
 deploy_prefix = "vault/"
 
+sss_bind_user = "CITES-ICS-LDAPQuery@ad.uillinois.edu"
+
+vault_server_admin_groups = [
+    "ICS Admins",
+]
 vault_server_fqdns = [
     "sbutler1-vault-a.ics.illinois.edu",
     "sbutler1-vault-b.ics.illinois.edu",

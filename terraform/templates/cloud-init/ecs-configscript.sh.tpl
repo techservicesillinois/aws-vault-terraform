@@ -28,6 +28,7 @@ EOF
 write_file /etc/security/limits.d/uiuc-vault <<EOF
 *       soft    nofile      1024
 *       hard    nofile      65536
+*       hard    core        0
 EOF
 
 write_file /etc/sysconfig/docker <<EOF

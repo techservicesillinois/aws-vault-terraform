@@ -88,9 +88,25 @@ variable "secrets" {
     }
 }
 
+
 # =========================================================
-# Vaul Server
+# SSSD Generic Settings
 # =========================================================
+
+variable "sss_bind_user" {
+    type = "string"
+    description = "AD user to bind as for SSS operations (tokenGroup access required)."
+}
+
+
+# =========================================================
+# Vault Server
+# =========================================================
+
+variable "vault_server_admin_groups" {
+    type = "list"
+    description = "AD groups allowed to admin the vault server."
+}
 
 variable "vault_server_private_ips" {
     type = "list"
