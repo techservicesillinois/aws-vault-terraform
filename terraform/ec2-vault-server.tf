@@ -12,6 +12,8 @@ locals {
         sss_allow_groups = "${lower(join(", ", var.vault_server_admin_groups))}"
 
         ssh_allow_groups = "${lower(join(" ", formatlist("\"%s\"", var.vault_server_admin_groups)))}"
+
+        sudo_admin_groups = "${var.vault_server_admin_groups}"
     }
 }
 
