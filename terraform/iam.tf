@@ -57,6 +57,10 @@ resource "aws_kms_key" "vault" {
         Project = "${var.project}"
         NetID = "${var.contact}"
     }
+
+    lifecycle {
+        prevent_destroy = true
+    }
 }
 resource "aws_kms_alias" "vault" {
     name = "alias/${var.project}"
@@ -79,5 +83,9 @@ resource "aws_secretsmanager_secret" "vault_master" {
 
         Project = "${var.project}"
         NetID = "${var.contact}"
+    }
+
+    lifecycle {
+        prevent_destroy = true
     }
 }

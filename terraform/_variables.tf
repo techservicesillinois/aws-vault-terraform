@@ -88,9 +88,29 @@ variable "secrets" {
     }
 }
 
+# =========================================================
+# Vaul Server
+# =========================================================
+
+variable "vault_server_private_ips" {
+    type = "list"
+    description = "Private IP's in the public subnets to use for the servers."
+}
+
+variable "vault_server_fqdns" {
+    type = "list"
+    description = "Fully qualified domain name of the vault servers, one per public subnet."
+}
+
+variable "vault_server_instance_type" {
+    type = "string"
+    description = "Instance type to launch for the servers."
+    default = "t2.small"
+}
+
 
 # =========================================================
-# Base
+# Vaul Storage
 # =========================================================
 
 variable "vault_storage_max_rcu" {

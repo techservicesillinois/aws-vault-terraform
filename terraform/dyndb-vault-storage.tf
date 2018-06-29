@@ -40,6 +40,8 @@ resource "aws_dynamodb_table" "vault_storage" {
             "read_capacity",
             "write_capacity",
         ]
+
+        prevent_destroy = true
     }
 }
 
