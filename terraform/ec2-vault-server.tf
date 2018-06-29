@@ -228,6 +228,7 @@ resource "null_resource" "vaule_server_config" {
 
         environment {
             ANSIBLE_HOST_KEY_CHECKING = "False"
+            ANSIBLE_SSH_RETRIES = "3"
         }
     }
 }
