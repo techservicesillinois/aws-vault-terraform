@@ -2,9 +2,47 @@
 # Data
 # ===================================================================
 
+data "aws_iam_policy_document" "instance_logs" {
+    statement {
+        effect = "Allow"
+        actions = [
+            "logs:DescribeLogStreams",
+        ]
+        resources = [
+            "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*",
+        ]
+    }
+
+    statement {
+        effect = "Allow"
+        actions = [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents",
+        ]
+        resources = [
+            "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/${var.project}/ec2-instances/*",
+        ]
+    }
+}
+
+
 # ===================================================================
 # Resources
 # ===================================================================
+
+resource "aws_iam_policy" "instance_logs" {
+    name_prefix = "${var.project}-instance-logs-"
+    path = "/${var.project}/"
+    description = "Allow ${var.project} instances to send logs to CloudWatch logs"
+
+    policy = "${data.aws_iam_policy_document.instance_logs.json}"
+
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
 
 resource "aws_kms_key" "vault" {
     description = "Protects all vault secure information."
