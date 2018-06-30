@@ -1,0 +1,51 @@
+---
+- hosts: all
+  remote_user: ec2-user
+  become: yes
+
+  tasks:
+    - name: configuration directory
+      file:
+        path: /vault/config
+        mode: 0755
+        owner: root
+        group: root
+        state: directory
+    - name: tls key file
+      copy:
+        dest: /vault/config/server.key
+        mode: 0600
+        owner: root
+        group: root
+        content: "{{ tls_key }}"
+    - name: tls certificate file
+      copy:
+        dest: /vault/config/server.crt
+        mode: 0644
+        owner: root
+        group: root
+        content: "{{ tls_crt }}"
+    - name: configuration file
+      copy:
+        dest: /vault/config/config.hcl
+        mode: 0644
+        owner: root
+        group: root
+        content: |
+            storage "dynamodb" {
+                ha_enabled = "true"
+                region = "{{ region }}"
+                table = "{{ vault_storage }}"
+            }
+
+            listener "tcp" {
+                tls_cert_file = "/vault/config/server.crt"
+                tls_key_file = "/vault/config/server.key"
+            }
+
+            ui = "true"
+            pid_file = "/run/vault.pid"
+
+            api_addr = "{{ api_addr }}"
+            cluster_name = "{{ project }}"
+            cluster_addr = "{{ cluster_addr }}"

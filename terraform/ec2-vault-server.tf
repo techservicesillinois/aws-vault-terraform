@@ -3,7 +3,7 @@
 # =========================================================
 
 locals {
-    vault_server_ansible_extravars = {
+    ecs_instance_ansible_extravars = {
         project = "${var.project}"
         region = "${data.aws_region.current.name}"
 
@@ -14,10 +14,16 @@ locals {
         ssh_allow_groups = "${lower(join(" ", formatlist("\"%s\"", var.vault_server_admin_groups)))}"
 
         sudo_admin_groups = "${var.vault_server_admin_groups}"
+    }
 
-        vault_server_tls_crt = "${data.aws_s3_bucket_object.vault_server_tls_crt.body}"
-        vault_server_tls_key = "${data.aws_s3_bucket_object.vault_server_tls_key.body}"
-        vault_server_cluster_name = "${aws_ecs_cluster.vault_server.name}"
+    vault_server_ansible_extravars = {
+        project = "${var.project}"
+        region = "${data.aws_region.current.name}"
+
+        tls_crt = "${data.aws_s3_bucket_object.vault_server_tls_crt.body}"
+        tls_key = "${data.aws_s3_bucket_object.vault_server_tls_key.body}"
+
+        vault_storage = "${aws_dynamodb_table.vault_storage.name}"
     }
 }
 
@@ -228,18 +234,39 @@ resource "aws_eip_association" "vault_server" {
     instance_id = "${element(aws_instance.vault_server.*.id, count.index)}"
 }
 
-resource "null_resource" "vault_server_config" {
+resource "null_resource" "ecs_instance_ansible" {
     depends_on = [
         "aws_eip_association.vault_server"
     ]
 
     triggers {
         ansible_md5 = "${md5(file("${path.module}/files/ansible/ecs-instance.yml"))}"
+        ansible_extravars = "${jsonencode(local.ecs_instance_ansible_extravars)}"
+    }
+
+    provisioner "local-exec" {
+        command = "ansible-playbook -i '${join(",", aws_eip.vault_server.*.public_ip)},' -e '${jsonencode(local.ecs_instance_ansible_extravars)}' '${path.module}/files/ansible/ecs-instance.yml'"
+
+        environment {
+            ANSIBLE_HOST_KEY_CHECKING = "False"
+            ANSIBLE_SSH_RETRIES = "3"
+        }
+    }
+}
+
+resource "null_resource" "vault_server_ansible" {
+    count = "${length(data.aws_subnet.public.*.id)}"
+    depends_on = [
+        "null_resource.ecs_instance_ansible",
+    ]
+
+    triggers {
+        ansible_md5 = "${md5(file("${path.module}/files/ansible/vault-server.yml"))}"
         ansible_extravars = "${jsonencode(local.vault_server_ansible_extravars)}"
     }
 
     provisioner "local-exec" {
-        command = "ansible-playbook -i '${join(",", aws_eip.vault_server.*.public_ip)},' -e '${jsonencode(local.vault_server_ansible_extravars)}' '${path.module}/files/ansible/ecs-instance.yml'"
+        command = "ansible-playbook -i '${element(aws_eip.vault_server.*.public_ip, count.index)},' -e 'cluster_addr=\"https://${element(var.vault_server_private_ips, count.index)}:8201\" api_addr=\"https://${element(var.vault_server_fqdns, count.index)}:8200\"' -e '${jsonencode(local.vault_server_ansible_extravars)}' '${path.module}/files/ansible/vault-server.yml'"
 
         environment {
             ANSIBLE_HOST_KEY_CHECKING = "False"

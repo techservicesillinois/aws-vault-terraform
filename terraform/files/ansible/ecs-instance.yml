@@ -497,48 +497,6 @@
             log_group_name = /{{ project }}/ec2-instances/var/log/ecs/ecs-agent.log
       notify: awslogs | restart
 
-    - name: vault server | configuration directory
-      file:
-        path: /vault/config
-        mode: 0755
-        owner: root
-        group: root
-        state: directory
-    - name: vault server | tls key file
-      copy:
-        dest: /vault/config/server.key
-        mode: 0600
-        owner: root
-        group: root
-        content: "{{ vault_server_tls_key }}"
-    - name: vault server | tls certificate file
-      copy:
-        dest: /vault/config/server.crt
-        mode: 0644
-        owner: root
-        group: root
-        content: "{{ vault_server_tls_crt }}"
-    - name: vault server | configuration file
-      copy:
-        dest: /vault/config/config.hcl
-        mode: 0644
-        owner: root
-        group: root
-        content: |
-            storage "dynamodb" {
-                ha_enabled = "true"
-                region = "{{ region }}"
-            }
-
-            listener "tcp" {
-                tls_cert_file = "/vault/config/server.crt"
-                tls_key_file = "/vault/config/server.key"
-            }
-
-            cluster_name = "{{ vault_server_cluster_name }}"
-            ui = "true"
-            pid_file = "/run/vault.pid"
-
   handlers:
     - name: awslogs | restart
       service:
