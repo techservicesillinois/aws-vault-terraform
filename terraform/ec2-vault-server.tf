@@ -14,6 +14,10 @@ locals {
         ssh_allow_groups = "${lower(join(" ", formatlist("\"%s\"", var.vault_server_admin_groups)))}"
 
         sudo_admin_groups = "${var.vault_server_admin_groups}"
+
+        vault_server_tls_crt = "${data.aws_s3_bucket_object.vault_server_tls_crt.body}"
+        vault_server_tls_key = "${data.aws_s3_bucket_object.vault_server_tls_key.body}"
+        vault_server_cluster_name = "${aws_ecs_cluster.vault_server.name}"
     }
 }
 
@@ -21,6 +25,17 @@ locals {
 # =========================================================
 # Data
 # =========================================================
+
+data "aws_s3_bucket_object" "vault_server_tls_crt" {
+    bucket = "${var.deploy_bucket}"
+    key = "${var.deploy_prefix}server.crt"
+}
+
+data "aws_s3_bucket_object" "vault_server_tls_key" {
+    bucket = "${var.deploy_bucket}"
+    key = "${var.deploy_prefix}server.key"
+}
+
 
 data "template_file" "vault_server_config" {
     count = "${length(data.aws_subnet.public.*.id)}"
