@@ -39,6 +39,9 @@
             }
 
             listener "tcp" {
+                address = "0.0.0.0:8200"
+                cluster_address = "0.0.0.0:8201"
+
                 tls_cert_file = "/vault/config/server.crt"
                 tls_key_file = "/vault/config/server.key"
             }
@@ -46,6 +49,6 @@
             ui = "true"
             pid_file = "/run/vault.pid"
 
-            api_addr = "{{ api_addr }}"
+            api_addr = "https://{{ api_addr }}:8200"
             cluster_name = "{{ project }}"
-            cluster_addr = "{{ cluster_addr }}"
+            cluster_addr = "https://{{ cluster_addr }}:8201"

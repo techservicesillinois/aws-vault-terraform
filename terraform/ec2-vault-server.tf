@@ -250,6 +250,7 @@ resource "null_resource" "ecs_instance_ansible" {
         environment {
             ANSIBLE_HOST_KEY_CHECKING = "False"
             ANSIBLE_SSH_RETRIES = "3"
+            ANSIBLE_SSH_PRIVATE_KEY_FILE = "${var.key_file}"
         }
     }
 }
@@ -266,11 +267,12 @@ resource "null_resource" "vault_server_ansible" {
     }
 
     provisioner "local-exec" {
-        command = "ansible-playbook -i '${element(aws_eip.vault_server.*.public_ip, count.index)},' -e 'cluster_addr=\"https://${element(var.vault_server_private_ips, count.index)}:8201\" api_addr=\"https://${element(var.vault_server_fqdns, count.index)}:8200\"' -e '${jsonencode(local.vault_server_ansible_extravars)}' '${path.module}/files/ansible/vault-server.yml'"
+        command = "ansible-playbook -i '${element(aws_eip.vault_server.*.public_ip, count.index)},' -e 'cluster_addr=${element(aws_instance.vault_server.*.private_ip, count.index)} api_addr=${element(var.vault_server_fqdns, count.index)}' -e '${jsonencode(local.vault_server_ansible_extravars)}' '${path.module}/files/ansible/vault-server.yml'"
 
         environment {
             ANSIBLE_HOST_KEY_CHECKING = "False"
             ANSIBLE_SSH_RETRIES = "3"
+            ANSIBLE_SSH_PRIVATE_KEY_FILE = "${var.key_file}"
         }
     }
 }

@@ -5,7 +5,7 @@ environment = "Development"
 
 project = "sbutler1-vault"
 key_name = "sbutler1@illinois.edu"
-key_file = "~/.ssh/main-work"
+key_file = "/Users/sbutler/.ssh/main-work"
 
 deploy_bucket = "uiuc-sbutler1-sandbox"
 deploy_prefix = "vault/"
