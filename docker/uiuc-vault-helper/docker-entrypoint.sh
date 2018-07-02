@@ -136,6 +136,7 @@ EOF
         url="ldap://$UIUC_VAULT_LDAP_HOST" \
         starttls=true \
         insecure_tls="$UIUC_VAULT_LDAP_INSECURE" \
+        certificate=@/etc/ssl/incommon.pem \
         binddn="${_ldap_secret[0]@E}" \
         bindpass="${_ldap_secret[1]@E}" \
         userdn='DC=ad,DC=uillinois,DC=edu' \
