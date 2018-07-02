@@ -3,6 +3,8 @@
 set -e
 
 : ${UIUC_VAULT_MASTER_SECRET_MAX_TRIES:=0}
+: ${UIUC_VAULT_LDAP_HOST:=ldap-ad-aws.ldap.illinois.edu}
+: ${UIUC_VAULT_LDAP_INSECURE:=false}
 
 echoerr () { echo "$@" 1>&2; }
 
@@ -97,9 +99,6 @@ uiuc_vault_init () {
     fi
     declare -a _ldap_secret; readarray -t _ldap_secret <<< "$_result"
 
-    : ${UIUC_VAULT_LDAP_HOST:=ldap-ad-aws.ldap.illinois.edu}
-    : ${UIUC_VAULT_LDAP_INSECURE:=false}
-
     set +e
     vault status &> /dev/null; _status_exitcode=$?
     set -e
@@ -153,7 +152,7 @@ EOF
 
 # Unseal the vault-server using data from the master key secret.
 uiuc_vault_unseal () {
-    local _master_keys=()
+    declare -a _master_keys
     if [[ $# -gt 0 ]]; then
         _master_keys=("$@")
     else
