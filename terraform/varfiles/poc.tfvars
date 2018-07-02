@@ -12,6 +12,9 @@ deploy_prefix = "vault/"
 
 ldap_query_secret = "sbutler1-vault/ldap"
 
+vault_key_user_roles = [
+    "TechServicesStaff",
+]
 vault_server_admin_groups = [
     "ICS Admins",
 ]

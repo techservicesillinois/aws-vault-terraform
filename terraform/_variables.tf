@@ -93,10 +93,15 @@ variable "ldap_query_secret" {
     description = "Secrets Manager secret ID or name for LDAP querying; first line is the username and second the password."
 }
 
-
 # =========================================================
 # Vault Server
 # =========================================================
+
+variable "vault_key_user_roles" {
+    type = "list"
+    description = "Extra role names to grant to the KMS key for usage."
+    default = []
+}
 
 variable "vault_server_admin_groups" {
     type = "list"

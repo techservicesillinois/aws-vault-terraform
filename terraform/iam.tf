@@ -26,6 +26,45 @@ data "aws_iam_policy_document" "instance_logs" {
     }
 }
 
+data "aws_iam_policy_document" "vault_key" {
+    statement {
+        sid = "key-default-1"
+
+        effect = "Allow"
+        actions = [ "kms:*" ]
+        principals {
+            type = "AWS"
+            identifiers = [ "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" ]
+        }
+        resources = [ "*" ]
+    }
+
+    statement {
+        sid = "key-user-roles"
+
+        effect = "Allow"
+        actions = [
+            "kms:Decrypt",
+            "kms:Encrypt",
+            "kms:DescribeKey",
+            "kms:GenerateDataKey*",
+            "kms:GenerateRandom",
+        ]
+        principals {
+            type = "AWS"
+            identifiers = [ "${data.aws_iam_role.vault_key_user_role.*.arn}" ]
+        }
+        resources = [ "*" ]
+    }
+}
+
+
+data "aws_iam_role" "vault_key_user_role" {
+    count = "${length(var.vault_key_user_roles)}"
+
+    name = "${element(var.vault_key_user_roles, count.index)}"
+}
+
 
 # ===================================================================
 # Resources
@@ -47,6 +86,8 @@ resource "aws_iam_policy" "instance_logs" {
 resource "aws_kms_key" "vault" {
     description = "Protects all vault secure information."
     deletion_window_in_days = "${lower(var.environment) == "production" ? 30 : 7}"
+
+    policy = "${data.aws_iam_policy_document.vault_key.json}"
 
     tags {
         Service = "${var.service}"
