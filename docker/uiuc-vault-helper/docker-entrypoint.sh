@@ -23,11 +23,11 @@ trap finish EXIT
 # Run a vault command, but in the vault-server container running on
 # this host.
 vault () {
-    local _container_id
-    while [[ -z $_container_id ]]; do
-        _container_id="$(docker ps --filter name=vault-server --format '{{.ID}}')"
+    declare -a _container_id
+    while [[ ${#_container_id[@]} -le 0 ]]; do
+        _container_id=($(docker ps --filter "label=edu.illinois.ics.vault.role=server" --format '{{.ID}}'))
 
-        if [[ -z $_container_id ]]; then
+        if [[ ${#_container_id[@]} -le 0 ]]; then
             sleep 1
             echoerr "Waiting for vault-server docker container"
         fi
@@ -37,8 +37,35 @@ vault () {
         -e "VAULT_ADDR=$VAULT_ADDR" \
         -e "VAULT_TOKEN=$VAULT_TOKEN" \
         -e VAULT_FORMAT=json \
-        "$_container_id" \
-        vault "$@"
+        "${_container_id[0]}" \
+        vault "$@" | tr '\n' ' '
+    local _vault_status=${PIPESTATUS[0]}
+
+    # Add a trailing newline since we stripped them all off
+    echo ""
+    return $_vault_status
+}
+
+# Get the status on stdout. This disables error checking so that a
+# status check does not exit the script. The values are:
+#
+# - unsealed
+# - sealed
+# - error
+#
+# Any output is redirected to stderr instead of stdout.
+uiuc_vault_status () {
+    local _exitcode
+
+    set +e
+    vault status 1>&2; _exitcode=$?
+    set -e
+
+    case $_exitcode in
+        0)      echo "unsealed" ;;
+        2)      echo "sealed"   ;;
+        *)      echo "error"    ;;
+    esac
 }
 
 # Return the master keys from the secrets manager. This will loop if
@@ -52,32 +79,29 @@ uiuc_master_keys () {
         return 1
     fi
 
-    local _result=''
+    local _result='' _result_keys=''
     for (( _idx = 0; _idx < UIUC_VAULT_MASTER_SECRET_MAX_TRIES || UIUC_VAULT_MASTER_SECRET_MAX_TRIES == 0; _idx++ )); do
         _result="$(aws secretsmanager get-secret-value --secret-id "$UIUC_VAULT_MASTER_SECRET" || :)"
+        _result_keys="$(jq -r '.SecretString | fromjson? | .unseal_keys_hex[]' <<< "$_result")"
 
-        if [[ -n $_result ]]; then
-            break
+        if [[ -n $_result_keys ]]; then
+            echo "$_result_keys"
+            return 0
         else
             echoerr "Waiting for vault-server master secret ($UIUC_VAULT_MASTER_SECRET)"
             sleep 60
         fi
     done
 
-    if [[ -n $_result ]]; then
-        jq -r '.SecretString | fromjson | .unseal_keys_hex[]' <<< "$_result"
-    else
-        echoerr "ERROR: unable to get vault-server master secret ($UIUC_VAULT_MASTER_SECRET) after $UIUC_VAULT_MASTER_SECRET_MAX_TRIES tries"
-        return 1
-    fi
+    echoerr "ERROR: unable to get vault-server master secret ($UIUC_VAULT_MASTER_SECRET) after $UIUC_VAULT_MASTER_SECRET_MAX_TRIES tries"
+    return 1
 }
 
 # Initialize the vault-server, store the master keys, configure LDAP,
 # and revoke the root key
 uiuc_vault_init () {
-    local _status_output _status_exitcode
     local _init_result _init_keys
-    local _result
+    local _status _result
 
     if [[ -z $UIUC_VAULT_MASTER_SECRET ]]; then
         echoerr "ERROR: no UIUC_VAULT_MASTER_SECRET specified"
@@ -99,11 +123,8 @@ uiuc_vault_init () {
     fi
     declare -a _ldap_secret; readarray -t _ldap_secret <<< "$_result"
 
-    set +e
-    vault status &> /dev/null; _status_exitcode=$?
-    set -e
-
-    if (( _status_exitcode == 0 || _status_exitcode == 2 )); then
+    _status=$(uiuc_vault_status)
+    if [[ $_status == "sealed" || $_status == "unsealed" ]]; then
         echoerr "INFO: vault-server is already initialized"
         return 0
     fi
@@ -136,7 +157,7 @@ EOF
         url="ldap://$UIUC_VAULT_LDAP_HOST" \
         starttls=true \
         insecure_tls="$UIUC_VAULT_LDAP_INSECURE" \
-        certificate=@/etc/ssl/incommon.pem \
+        certificate=@/vault/config/ldap-ca.crt \
         binddn="${_ldap_secret[0]@E}" \
         bindpass="${_ldap_secret[1]@E}" \
         userdn='DC=ad,DC=uillinois,DC=edu' \
@@ -160,25 +181,24 @@ uiuc_vault_unseal () {
         _master_keys=($(uiuc_master_keys))
     fi
 
-    local _idx=0 _status_output='' _status_exitcode=0
+    local _idx=0 _status=''
     while [[ $_idx -lt ${#_master_keys[@]} ]]; do
-        set +e;
-        _status_output="$(vault status)";
-        _status_exitcode=$?
-        set -e
+        _status=$(uiuc_vault_status)
 
-        case $_status_exitcode in
-            0)
+        case $_status in
+            unsealed)
                 echoerr "INFO: vault-server is unsealed"
                 return 0
                 ;;
 
-            1)
-                echoerr "ERROR: vault-server status returned an error:$_status_output"
-                return 1
+            error)
+                echoerr "ERROR: vault-server status returned an error"
+                # Reset the seal keys used and sleep for a minute
+                _idx=0
+                sleep 60
                 ;;
 
-            2)
+            sealed)
                 echoerr "INFO: unsealing vault-server with key #$_idx"
                 vault operator unseal "${_master_keys[$_idx]}"
                 (( _idx++ )) || :

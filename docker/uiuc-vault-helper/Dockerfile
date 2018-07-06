@@ -1,10 +1,10 @@
 FROM debian:stretch
 
 COPY docker-entrypoint.sh /usr/local/bin/
-COPY incommon.pem /etc/ssl/
 
 RUN set -xe \
     && apt-get update && apt-get install -y \
+        libltdl7 \
         python3 \
         python3-pip \
         python3-yaml \

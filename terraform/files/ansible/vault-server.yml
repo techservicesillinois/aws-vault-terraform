@@ -25,6 +25,13 @@
         owner: root
         group: root
         content: "{{ tls_crt }}"
+    - name: tls LDAP CA file
+      copy:
+        src: ../incommon.pem
+        dest: /vault/config/ldap-ca.crt
+        mode: 0644
+        owner: root
+        group: root
     - name: configuration file
       copy:
         dest: /vault/config/config.hcl
@@ -38,6 +45,13 @@
                 table = "{{ vault_storage }}"
             }
 
+            # Only for the health check
+            listener "tcp" {
+                address = "127.0.0.1:8100"
+                tls_disable = "true"
+            }
+
+            # Public listener
             listener "tcp" {
                 address = "0.0.0.0:8200"
                 cluster_address = "0.0.0.0:8201"
@@ -47,7 +61,7 @@
             }
 
             ui = "true"
-            pid_file = "/run/vault.pid"
+            pid_file = "/vault/vault.pid"
 
             api_addr = "https://{{ api_addr }}:8200"
             cluster_name = "{{ project }}"
