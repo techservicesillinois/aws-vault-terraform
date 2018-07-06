@@ -73,7 +73,7 @@
         },
 
         "memoryReservation": 128,
-        "cpu": 256,
+        "cpu": 100,
 
         "logConfiguration": {
             "logDriver": "awslogs",
