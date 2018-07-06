@@ -40,6 +40,24 @@ data "aws_iam_policy_document" "vault_key" {
     }
 
     statement {
+        sid = "key-logs"
+
+        effect = "Allow"
+        actions = [
+            "kms:Encrypt*",
+            "kms:Decrypt*",
+            "kms:ReEncrypt*",
+            "kms:GenerateDataKey*",
+            "kms:Describe*"
+        ]
+        principals {
+            type = "Service"
+            identifiers = [ "logs.${data.aws_region.current.name}.amazonaws.com" ]
+        }
+        resources = [ "*" ]
+    }
+
+    statement {
         sid = "key-user-roles"
 
         effect = "Allow"
@@ -71,7 +89,7 @@ data "aws_iam_role" "vault_key_user_role" {
 # ===================================================================
 
 resource "aws_iam_policy" "instance_logs" {
-    name_prefix = "${var.project}-instance-logs-"
+    name_prefix = "${var.project}-logs-"
     path = "/${var.project}/"
     description = "Allow ${var.project} instances to send logs to CloudWatch logs"
 

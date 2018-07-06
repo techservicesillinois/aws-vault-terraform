@@ -2,7 +2,48 @@
 # Data
 # =========================================================
 
+data "template_file" "vault_init_containers" {
+    template = "${file("${path.module}/templates/ecs-tasks/vault-init.json.tpl")}"
 
+    vars {
+        project = "${var.project}"
+        region = "${data.aws_region.current.name}"
+        log_group = "${aws_cloudwatch_log_group.vault_server_containers.name}"
+
+        helper_image = "${var.vault_helper_image}"
+        helper_command = "${join(", ",
+            formatlist("\"%s\"",
+                concat(
+                    list("init"),
+                    var.vault_server_admin_groups,
+                )
+            )
+        )}"
+        helper_ldap_secret = "${var.ldap_query_secret}"
+        helper_master_secret = "${aws_secretsmanager_secret.vault_master.name}"
+    }
+}
+
+data "template_file" "vault_server_containers" {
+    template = "${file("${path.module}/templates/ecs-tasks/vault-server.json.tpl")}"
+
+    vars {
+        project = "${var.project}"
+        region = "${data.aws_region.current.name}"
+        log_group = "${aws_cloudwatch_log_group.vault_server_containers.name}"
+
+        server_image = "${var.vault_server_image}"
+        server_mem = "${lookup(
+            var.docker_instance2memoryres,
+            var.vault_server_instance_type,
+            floor(lookup(var.docker_instance2memory, var.vault_server_instance_type) / 2)
+        )}"
+        server_cpu = "${lookup(var.docker_instance2cpu, var.vault_server_instance_type)}"
+
+        helper_image = "${var.vault_helper_image}"
+        helper_master_secret = "${aws_secretsmanager_secret.vault_master.name}"
+    }
+}
 
 # =========================================================
 # Resources
@@ -10,4 +51,100 @@
 
 resource "aws_ecs_cluster" "vault_server" {
     name = "${var.project}-server"
+}
+
+
+resource "aws_ecs_service" "vault_server" {
+    name = "Server"
+    cluster = "${aws_ecs_cluster.vault_server.arn}"
+    task_definition = "${aws_ecs_task_definition.vault_server.arn}"
+
+    launch_type = "EC2"
+    scheduling_strategy = "DAEMON"
+}
+
+
+resource "aws_ecs_task_definition" "vault_init" {
+    family = "${var.project}-init"
+    container_definitions = "${data.template_file.vault_init_containers.rendered}"
+
+    task_role_arn = "${aws_iam_role.vault_init_task.arn}"
+    execution_role_arn = "${data.aws_iam_role.task_execution.arn}"
+
+    network_mode = "bridge"
+    requires_compatibilities = [ "EC2" ]
+
+    volume {
+        name = "docker-bin"
+        host_path = "/usr/bin/docker"
+    }
+    volume {
+        name = "docker-cgroup"
+        host_path = "/cgroup"
+    }
+    volume {
+        name = "docker-plugins-etc"
+        host_path = "/etc/docker/plugins"
+    }
+    volume {
+        name = "docker-plugins-lib"
+        host_path = "/usr/lib/docker/plugins"
+    }
+    volume {
+        name = "docker-plugins-run"
+        host_path = "/run/docker/plugins"
+    }
+    volume {
+        name = "docker-proc"
+        host_path = "/proc"
+    }
+    volume {
+        name = "docker-sock"
+        host_path = "/var/run/docker.sock"
+    }
+}
+
+resource "aws_ecs_task_definition" "vault_server" {
+    family = "${var.project}-server"
+    container_definitions = "${data.template_file.vault_server_containers.rendered}"
+
+    task_role_arn = "${aws_iam_role.vault_server_task.arn}"
+    execution_role_arn = "${data.aws_iam_role.task_execution.arn}"
+
+    network_mode = "bridge"
+    requires_compatibilities = [ "EC2" ]
+
+    volume {
+        name = "vault-config"
+        host_path = "/vault/config"
+    }
+
+    volume {
+        name = "docker-bin"
+        host_path = "/usr/bin/docker"
+    }
+    volume {
+        name = "docker-cgroup"
+        host_path = "/cgroup"
+    }
+    volume {
+        name = "docker-plugins-etc"
+        host_path = "/etc/docker/plugins"
+    }
+    volume {
+        name = "docker-plugins-lib"
+        host_path = "/usr/lib/docker/plugins"
+    }
+    volume {
+        name = "docker-plugins-run"
+        host_path = "/run/docker/plugins"
+    }
+    volume {
+        name = "docker-proc"
+        host_path = "/proc"
+    }
+    volume {
+        name = "docker-sock"
+        host_path = "/var/run/docker.sock"
+    }
 }

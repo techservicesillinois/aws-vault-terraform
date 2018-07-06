@@ -34,15 +34,34 @@ data "aws_iam_policy_document" "instance_assume_role" {
     }
 }
 
+data "aws_iam_policy_document" "task_assume_role" {
+    statement {
+        effect = "Allow"
+        actions = [ "sts:AssumeRole" ]
+        principals {
+            type = "Service"
+            identifiers = [ "ecs-tasks.amazonaws.com" ]
+        }
+    }
+}
+
 
 data "aws_iam_role" "appautoscaling_dynamodb" {
     name = "AWSServiceRoleForApplicationAutoScaling_DynamoDBTable"
+}
+
+# https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html
+data "aws_iam_role" "task_execution" {
+    name = "ecsTaskExecutionRole"
 }
 
 
 data "aws_region" "current" {}
 
 
+data "aws_secretsmanager_secret" "ldap_query" {
+    name = "${var.ldap_query_secret}"
+}
 data "aws_secretsmanager_secret_version" "ldap_query" {
-    secret_id = "${var.ldap_query_secret}"
+    secret_id = "${data.aws_secretsmanager_secret.ldap_query.arn}"
 }
