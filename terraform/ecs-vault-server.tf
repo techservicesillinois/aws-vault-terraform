@@ -62,6 +62,21 @@ resource "aws_ecs_service" "vault_server" {
     launch_type = "EC2"
     scheduling_strategy = "DAEMON"
 }
+resource "null_resource" "vault_server_init" {
+    depends_on = [
+        "aws_ecs_service.vault_server"
+    ]
+
+    provisioner "local-exec" {
+        command = "${path.module}/scripts/vault-server-init.sh"
+
+        environment {
+            UIUC_VAULT_CLUSTER = "${aws_ecs_cluster.vault_server.name}"
+            UIUC_VAULT_INIT_TASK = "${aws_ecs_task_definition.vault_init.arn}"
+            AWS_DEFAULT_REGION = "${data.aws_region.current.name}"
+        }
+    }
+}
 
 
 resource "aws_ecs_task_definition" "vault_init" {
