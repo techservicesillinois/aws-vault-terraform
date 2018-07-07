@@ -69,6 +69,17 @@ data "aws_iam_policy_document" "vault_server_task" {
     statement {
         effect = "Allow"
         actions = [
+            "ec2:DescribeInstances",
+            "iam:GetInstanceProfile",
+            "iam:GetUser",
+            "iam:GetRole",
+        ]
+        resources = [ "*" ]
+    }
+
+    statement {
+        effect = "Allow"
+        actions = [
             "dynamodb:*",
         ]
         resources = [

@@ -170,6 +170,9 @@ EOF
         echo "INFO: adding root policy for $group"
         vault write "auth/ldap/groups/$group" policies=admin
     done
+
+    echoerr "INFO: enabling aws auth"
+    vault auth enable aws
 }
 
 # Unseal the vault-server using data from the master key secret.
