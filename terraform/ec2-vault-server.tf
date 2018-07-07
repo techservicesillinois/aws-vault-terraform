@@ -32,26 +32,15 @@ locals {
 # Data
 # =========================================================
 
-data "aws_s3_bucket_object" "vault_server_tls_crt" {
-    bucket = "${var.deploy_bucket}"
-    key = "${var.deploy_prefix}server.crt"
-}
-
-data "aws_s3_bucket_object" "vault_server_tls_key" {
-    bucket = "${var.deploy_bucket}"
-    key = "${var.deploy_prefix}server.key"
-}
-
-
 data "template_file" "vault_server_config" {
     count = "${length(data.aws_subnet.public.*.id)}"
 
     template = "${file("${path.module}/templates/cloud-init/ecs-config.yml.tpl")}"
 
     vars {
-        fqdn = "${element(var.vault_server_fqdns, count.index)}"
+        fqdn = "${element(var.vault_server_public_fqdns, count.index)}"
         hostname = "${replace(
-            element(var.vault_server_fqdns, count.index),
+            element(var.vault_server_public_fqdns, count.index),
             "^([^.]+)(\\..*)$",
             "$1"
         )}"
@@ -92,7 +81,7 @@ resource "aws_eip" "vault_server" {
 
     vpc = true
     tags {
-        Name = "${element(var.vault_server_fqdns, count.index)}"
+        Name = "${element(var.vault_server_public_fqdns, count.index)}"
 
         Service = "${var.service}"
         Contact = "${var.contact}"
@@ -199,7 +188,7 @@ resource "aws_instance" "vault_server" {
     }
 
     tags {
-        Name = "${element(var.vault_server_fqdns, count.index)}"
+        Name = "${element(var.vault_server_public_fqdns, count.index)}"
 
         Service = "${var.service}"
         Contact = "${var.contact}"
@@ -211,7 +200,7 @@ resource "aws_instance" "vault_server" {
     }
 
     volume_tags {
-        Name = "${element(var.vault_server_fqdns, count.index)}"
+        Name = "${element(var.vault_server_public_fqdns, count.index)}"
 
         Service = "${var.service}"
         Contact = "${var.contact}"
@@ -267,7 +256,7 @@ resource "null_resource" "vault_server_ansible" {
     }
 
     provisioner "local-exec" {
-        command = "ansible-playbook -i '${element(aws_eip.vault_server.*.public_ip, count.index)},' -e 'cluster_addr=${element(aws_instance.vault_server.*.private_ip, count.index)} api_addr=${element(var.vault_server_fqdns, count.index)}' -e '${jsonencode(local.vault_server_ansible_extravars)}' '${path.module}/files/ansible/vault-server.yml'"
+        command = "ansible-playbook -i '${element(aws_eip.vault_server.*.public_ip, count.index)},' -e 'cluster_addr=${element(aws_instance.vault_server.*.private_ip, count.index)} api_addr=${element(var.vault_server_public_fqdns, count.index)}' -e '${jsonencode(local.vault_server_ansible_extravars)}' '${path.module}/files/ansible/vault-server.yml'"
 
         environment {
             ANSIBLE_HOST_KEY_CHECKING = "False"

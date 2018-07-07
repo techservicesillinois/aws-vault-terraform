@@ -113,7 +113,13 @@ variable "vault_server_private_ips" {
     description = "Private IP's in the public subnets to use for the servers."
 }
 
-variable "vault_server_fqdns" {
+variable "vault_server_fqdn" {
+    type = "string"
+    description = "Fully qualified domain name of the single endpoint for the vault server (load balancer)."
+    default = ""
+}
+
+variable "vault_server_public_fqdns" {
     type = "list"
     description = "Fully qualified domain name of the vault servers, one per public subnet."
 }

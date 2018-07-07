@@ -18,7 +18,8 @@ vault_key_user_roles = [
 vault_server_admin_groups = [
     "ICS Admins",
 ]
-vault_server_fqdns = [
+vault_server_fqdn = "sbutler1-vault.ics.illinois.edu"
+vault_server_public_fqdns = [
     "sbutler1-vault-a.ics.illinois.edu",
     "sbutler1-vault-b.ics.illinois.edu",
 ]
