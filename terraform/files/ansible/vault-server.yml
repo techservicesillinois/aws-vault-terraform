@@ -15,6 +15,21 @@
         vault_user:  "{{ getent_vault.stdout | regex_replace('^([^:]*):([^:]*):(\\d*):(\\d*):([^:]*):([^:]*):([^:]*)$', '\\3') }}"
         vault_group: "{{ getent_vault.stdout | regex_replace('^([^:]*):([^:]*):(\\d*):(\\d*):([^:]*):([^:]*):([^:]*)$', '\\4') }}"
 
+    - name: reload script
+      copy:
+        dest: /usr/local/bin/uiuc-vault-server-reload
+        mode: 0755
+        owner: root
+        group: root
+        content: !unsafe |
+            #!/bin/bash
+            set -e
+
+            _container_id=($(docker ps --filter "label=edu.illinois.ics.vault.role=server" --format '{{.ID}}'))
+            if [[ ${#_container_id[@]} -gt 0 ]]; then
+                docker kill -s HUP ${_container_id[@]} || :
+            fi
+
     - name: configuration directory
       file:
         path: /vault/config
@@ -29,6 +44,7 @@
         owner: "{{ vault_user }}"
         group: "{{ vault_group }}"
         state: directory
+      notify: vault | reload
 
     - name: tls key file
       copy:
@@ -37,6 +53,7 @@
         owner: "{{ vault_user }}"
         group: "{{ vault_group }}"
         content: "{{ tls_key }}"
+      notify: vault | reload
     - name: tls certificate file
       copy:
         dest: /vault/config/server.crt
@@ -44,6 +61,7 @@
         owner: "{{ vault_user }}"
         group: "{{ vault_group }}"
         content: "{{ tls_crt }}"
+      notify: vault | reload
     - name: tls LDAP CA file
       copy:
         src: ../incommon.pem
@@ -86,6 +104,7 @@
             api_addr = "https://{{ api_addr }}:8200"
             cluster_name = "{{ project }}"
             cluster_addr = "https://{{ cluster_addr }}:8201"
+      notify: vault | reload
 
     - name: logrotate | configure vault log rotation
       copy:
@@ -102,9 +121,10 @@
                 nocreate
                 sharedscripts
                 postrotate
-                    _container_id=`docker ps --filter "label=edu.illinois.ics.vault.role=server" --format '{{.ID}}' | head -n1`
-                    if [ -n "$_container_id" ]; then
-                        docker kill -s HUP $_container_id
-                    fi
+                    /usr/local/bin/uiuc-vault-server-reload
                 endscript
             }
+
+  handlers:
+    - name: vault | reload
+      command: /usr/local/bin/uiuc-vault-server-reload
