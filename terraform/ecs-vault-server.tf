@@ -1,6 +1,25 @@
 # =========================================================
+# Locals
+# =========================================================
+
+locals {
+    vault_server_image = "${replace(var.vault_server_image, "/^(.+?)(:[^:]+)?$/", "$1")}@${data.docker_registry_image.vault_server.sha256_digest}"
+    vault_helper_image = "${replace(var.vault_helper_image, "/^(.+?)(:[^:]+)?$/", "$1")}@${data.docker_registry_image.vault_helper.sha256_digest}"
+}
+
+
+# =========================================================
 # Data
 # =========================================================
+
+data "docker_registry_image" "vault_server" {
+    name = "${var.vault_server_image}"
+}
+
+data "docker_registry_image" "vault_helper" {
+    name = "${var.vault_helper_image}"
+}
+
 
 data "template_file" "vault_init_containers" {
     template = "${file("${path.module}/templates/ecs-tasks/vault-init.json.tpl")}"
@@ -10,7 +29,7 @@ data "template_file" "vault_init_containers" {
         region = "${data.aws_region.current.name}"
         log_group = "${aws_cloudwatch_log_group.vault_server_containers.name}"
 
-        helper_image = "${var.vault_helper_image}"
+        helper_image = "${local.vault_helper_image}"
         helper_command = "${join(", ",
             formatlist("\"%s\"",
                 concat(
@@ -32,7 +51,7 @@ data "template_file" "vault_server_containers" {
         region = "${data.aws_region.current.name}"
         log_group = "${aws_cloudwatch_log_group.vault_server_containers.name}"
 
-        server_image = "${var.vault_server_image}"
+        server_image = "${local.vault_server_image}"
         server_mem = "${lookup(
             var.docker_instance2memoryres,
             var.vault_server_instance_type,
@@ -40,7 +59,7 @@ data "template_file" "vault_server_containers" {
         )}"
         server_cpu = "${lookup(var.docker_instance2cpu, var.vault_server_instance_type)}"
 
-        helper_image = "${var.vault_helper_image}"
+        helper_image = "${local.vault_helper_image}"
         helper_master_secret = "${aws_secretsmanager_secret.vault_master.name}"
     }
 }
