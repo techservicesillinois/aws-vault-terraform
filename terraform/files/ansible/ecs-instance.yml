@@ -107,6 +107,42 @@
       with_items:
           - issue
           - issue.net
+    - name: cis | ensure access to the su command is restricted
+      replace:
+        path: /etc/pam.d/su
+        mode: 0644
+        owner: root
+        group: root
+        regexp: '^#(auth\s+required\s+pam_wheel.so\s+use_uid.*)$'
+        replace: '\1'
+    - name: cis | ensure password creation requirements are configured
+      lineinfile:
+        path: /etc/security/pwquality.conf
+        mode: 0644
+        owner: root
+        group: root
+        regexp: "^(#\\s*)?{{ item }}\\s*="
+        line: "{{ item }} = -1"
+      with_items:
+          - dcredit
+          - ucredit
+          - ocredit
+          - lcredit
+    - name: cis | ensure password creation requirements are configured (minlen)
+      lineinfile:
+        path: /etc/security/pwquality.conf
+        mode: 0644
+        owner: root
+        group: root
+        regexp: "^(#\\s*)?minlen\\s*="
+        line: "minlen = 14"
+    - name: cis | ensure root PATH integrity
+      file:
+        path: /root/bin
+        mode: 0700
+        owner: root
+        group: root
+        state: directory
 
     - name: ntp | configure
       copy:
