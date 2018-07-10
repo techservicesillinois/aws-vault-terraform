@@ -226,7 +226,8 @@ resource "aws_eip_association" "vault_server" {
 
 resource "null_resource" "ecs_instance_ansible" {
     depends_on = [
-        "aws_eip_association.vault_server"
+        "aws_eip_association.vault_server",
+        "null_resource.wait_vault_server_role",
     ]
 
     triggers {

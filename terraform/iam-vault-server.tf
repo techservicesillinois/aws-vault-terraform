@@ -192,6 +192,20 @@ resource "aws_iam_role_policy_attachment" "vault_server_containers_logs" {
     }
 }
 
+# It can take a bit for policies to attached. Depend on this role to make sure
+# all policies are attached and available.
+resource "null_resource" "wait_vault_server_role" {
+    depends_on = [
+        "aws_iam_role_policy_attachment.vault_server_AmazonEC2ContainerServiceforEC2Role",
+        "aws_iam_role_policy_attachment.vault_server_instance_logs",
+        "aws_iam_role_policy_attachment.vault_server_containers_logs",
+    ]
+
+    provisioner "local-exec" {
+        command = "sleep 30"
+    }
+}
+
 
 resource "aws_iam_role" "vault_init_task" {
     name_prefix = "${var.project}-task-"
@@ -211,6 +225,18 @@ resource "aws_iam_role_policy_attachment" "vault_init_task" {
     }
 }
 
+# It can take a bit for policies to attached. Depend on this role to make sure
+# all policies are attached and available.
+resource "null_resource" "wait_vault_init_task_role" {
+    depends_on = [
+        "aws_iam_role_policy_attachment.vault_init_task",
+    ]
+
+    provisioner "local-exec" {
+        command = "sleep 30"
+    }
+}
+
 
 resource "aws_iam_role" "vault_server_task" {
     name_prefix = "${var.project}-task-"
@@ -227,5 +253,17 @@ resource "aws_iam_role_policy_attachment" "vault_server_task" {
 
     lifecycle {
         create_before_destroy = true
+    }
+}
+
+# It can take a bit for policies to attached. Depend on this role to make sure
+# all policies are attached and available.
+resource "null_resource" "wait_vault_server_task_role" {
+    depends_on = [
+        "aws_iam_role_policy_attachment.vault_server_task",
+    ]
+
+    provisioner "local-exec" {
+        command = "sleep 30"
     }
 }

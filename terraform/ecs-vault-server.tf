@@ -55,6 +55,11 @@ resource "aws_ecs_cluster" "vault_server" {
 
 
 resource "aws_ecs_service" "vault_server" {
+    depends_on = [
+        "null_resource.vault_server_ansible",
+        "null_resource.wait_vault_server_task_role",
+    ]
+
     name = "Server"
     cluster = "${aws_ecs_cluster.vault_server.arn}"
     task_definition = "${aws_ecs_task_definition.vault_server.arn}"
@@ -64,7 +69,8 @@ resource "aws_ecs_service" "vault_server" {
 }
 resource "null_resource" "vault_server_init" {
     depends_on = [
-        "aws_ecs_service.vault_server"
+        "aws_ecs_service.vault_server",
+        "null_resource.wait_vault_init_task_role",
     ]
 
     provisioner "local-exec" {
