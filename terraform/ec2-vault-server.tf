@@ -23,6 +23,7 @@ locals {
         tls_crt = "${data.aws_s3_bucket_object.vault_server_tls_crt.body}"
         tls_key = "${data.aws_s3_bucket_object.vault_server_tls_key.body}"
 
+        vault_image = "${var.vault_server_image}"
         vault_storage = "${aws_dynamodb_table.vault_storage.name}"
     }
 }

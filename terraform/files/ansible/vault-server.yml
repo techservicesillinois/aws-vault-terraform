@@ -1,52 +1,63 @@
 ---
 - hosts: all
+  gather_facts: false
   remote_user: ec2-user
   become: yes
 
   tasks:
+    - name: lookup the vault user passwd entry
+      command: docker run -i {{ vault_image }} getent passwd vault
+      register: getent_vault
+      check_mode: false
+      changed_when: false
+    - name: set the vault_user and vault_group facts
+      set_fact:
+        vault_user:  "{{ getent_vault.stdout | regex_replace('^([^:]*):([^:]*):(\\d*):(\\d*):([^:]*):([^:]*):([^:]*)$', '\\3') }}"
+        vault_group: "{{ getent_vault.stdout | regex_replace('^([^:]*):([^:]*):(\\d*):(\\d*):([^:]*):([^:]*):([^:]*)$', '\\4') }}"
+
     - name: configuration directory
       file:
         path: /vault/config
         mode: 0755
-        owner: root
-        group: root
+        owner: "{{ vault_user }}"
+        group: "{{ vault_group }}"
         state: directory
     - name: logging directory
       file:
         path: /vault/logs
         mode: 0700
-        owner: root
-        group: root
+        owner: "{{ vault_user }}"
+        group: "{{ vault_group }}"
         state: directory
 
     - name: tls key file
       copy:
         dest: /vault/config/server.key
         mode: 0600
-        owner: root
-        group: root
+        owner: "{{ vault_user }}"
+        group: "{{ vault_group }}"
         content: "{{ tls_key }}"
     - name: tls certificate file
       copy:
         dest: /vault/config/server.crt
         mode: 0644
-        owner: root
-        group: root
+        owner: "{{ vault_user }}"
+        group: "{{ vault_group }}"
         content: "{{ tls_crt }}"
     - name: tls LDAP CA file
       copy:
         src: ../incommon.pem
         dest: /vault/config/ldap-ca.crt
         mode: 0644
-        owner: root
-        group: root
+        owner: "{{ vault_user }}"
+        group: "{{ vault_group }}"
 
     - name: configuration file
       copy:
         dest: /vault/config/config.hcl
         mode: 0644
-        owner: root
-        group: root
+        owner: "{{ vault_user }}"
+        group: "{{ vault_group }}"
         content: |
             storage "dynamodb" {
                 ha_enabled = "true"
