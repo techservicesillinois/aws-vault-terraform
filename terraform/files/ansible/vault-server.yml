@@ -11,6 +11,14 @@
         owner: root
         group: root
         state: directory
+    - name: logging directory
+      file:
+        path: /vault/logs
+        mode: 0700
+        owner: root
+        group: root
+        state: directory
+
     - name: tls key file
       copy:
         dest: /vault/config/server.key
@@ -32,6 +40,7 @@
         mode: 0644
         owner: root
         group: root
+
     - name: configuration file
       copy:
         dest: /vault/config/config.hcl
@@ -66,3 +75,25 @@
             api_addr = "https://{{ api_addr }}:8200"
             cluster_name = "{{ project }}"
             cluster_addr = "https://{{ cluster_addr }}:8201"
+
+    - name: logrotate | configure vault log rotation
+      copy:
+        dest: /etc/logrotate.d/vault
+        mode: 0644
+        owner: root
+        group: root
+        content: !unsafe |
+            /vault/logs/*.log {
+                daily
+                rotate 30
+                compress
+                delaycompress
+                nocreate
+                sharedscripts
+                postrotate
+                    _container_id=`docker ps --filter "label=edu.illinois.ics.vault.role=server" --format '{{.ID}}' | head -n1`
+                    if [ -n "$_container_id" ]; then
+                        docker kill -s HUP $_container_id
+                    fi
+                endscript
+            }

@@ -133,6 +133,10 @@ resource "aws_ecs_task_definition" "vault_server" {
         name = "vault-config"
         host_path = "/vault/config"
     }
+    volume {
+        name = "vault-logs"
+        host_path = "/vault/logs"
+    }
 
     volume {
         name = "docker-bin"

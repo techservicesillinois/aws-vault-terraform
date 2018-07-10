@@ -178,6 +178,17 @@ uiuc_vault_init () {
     VAULT_TOKEN="$(jq -r '.root_token' <<< "$_init_result")"
     root_tokens+=("$VAULT_TOKEN")
 
+    echoerr "INFO: enable auditing (stdout)"
+    vault audit enable -path="stdout/" file \
+        file_path=stdout \
+        format=json \
+        prefix="AUDIT: "
+
+    echoerr "INFO: enable auditing (file)"
+    vault audit enable -path="file/" file \
+        file_path=/vault/logs/audit.log \
+        format=json
+
     echoerr "INFO: creating the admin policy"
     vault policy write admin - <<'EOF'
 path "*" {

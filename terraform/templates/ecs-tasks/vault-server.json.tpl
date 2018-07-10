@@ -10,7 +10,8 @@
             { "name": "AWS_DEFAULT_REGION", "value": "${region}" }
         ],
         "mountPoints": [
-            { "sourceVolume": "vault-config", "containerPath": "/vault/config", "readOnly": false }
+            { "sourceVolume": "vault-config", "containerPath": "/vault/config", "readOnly": false },
+            { "sourceVolume": "vault-logs", "containerPath": "/vault/logs", "readOnly": false }
         ],
         "dockerLabels": {
             "edu.illinois.ics.vault.role": "server"
