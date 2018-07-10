@@ -25,6 +25,10 @@ resource "aws_dynamodb_table" "vault_storage" {
         enabled = true
     }
 
+    point_in_time_recovery {
+        enabled = true
+    }
+
     tags {
         Service = "${var.service}"
         Contact = "${var.contact}"
