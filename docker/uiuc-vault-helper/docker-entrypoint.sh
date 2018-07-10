@@ -2,12 +2,27 @@
 
 set -e
 
+# Maximum number of times the helper will try to read the secret. If
+# you set 0 then it will try indefinitely.
+#
+# Default: 0
 : ${UIUC_VAULT_MASTER_SECRET_MAX_TRIES:=0}
+
+# LDAP server to connect to for Vault authentication.
+#
+# Default: ldap-ad-aws.ldap.illinois.edu
 : ${UIUC_VAULT_LDAP_HOST:=ldap-ad-aws.ldap.illinois.edu}
+
+# Don't check the SSL certificate on the LDAP server. This can be
+# useful for testing but shouldn't appear in production.
+#
+# Default: false (check the cert)
 : ${UIUC_VAULT_LDAP_INSECURE:=false}
 
 echoerr () { echo "$@" 1>&2; }
 
+# Finish handler run at the helper exit. This looks at the `root_tokens`
+# array and revokes each of them.
 root_tokens=()
 finish () {
     # Cleanup all root tokens we allocated
@@ -21,8 +36,16 @@ finish () {
 trap finish EXIT
 
 # Run a vault command, but in the vault-server container running on
-# this host.
+# this host. This uses the first container ID with the label
+# `edu.illinois.ics.vault.role=server`. If it can't find a container
+# with that label then it sleeps 1s and tries again.
+#
+# You will need to set `VAULT_TOKEN` before running this. All output
+# is JSON formatted, with the newlines stripped (helps with logging).
+# Return value is the exit code of the command.
 vault () {
+    # List running containers with the server role, placing the ID's in
+    # the `_container_id` array. Stop when we get at least one.
     declare -a _container_id
     while [[ ${#_container_id[@]} -le 0 ]]; do
         _container_id=($(docker ps --filter "label=edu.illinois.ics.vault.role=server" --format '{{.ID}}'))
@@ -57,6 +80,7 @@ vault () {
 uiuc_vault_status () {
     local _exitcode
 
+    # Turn off error checking when running the status command.
     set +e
     vault status 1>&2; _exitcode=$?
     set -e
@@ -69,10 +93,11 @@ uiuc_vault_status () {
 }
 
 # Return the master keys from the secrets manager. This will loop if
-# there is an error getting the secret value, until UIUC_VAULT_MASTER_SECRET_MAX_TRIES
+# there is an error getting the secret value or the vaule retrieved
+# doesn't contain any keys, until `UIUC_VAULT_MASTER_SECRET_MAX_TRIES`
 # is up. It sleeps 60 seconds between tries.
 #
-# Keys are returned on STDOUT, one per line.
+# Keys are returned on stdout, one per line.
 uiuc_master_keys () {
     if [[ -z $UIUC_VAULT_MASTER_SECRET ]]; then
         echoerr "ERROR: no UIUC_VAULT_MASTER_SECRET specified"
@@ -97,8 +122,19 @@ uiuc_master_keys () {
     return 1
 }
 
-# Initialize the vault-server, store the master keys, configure LDAP,
-# and revoke the root key
+# Initialize the vault-server. It does this by following this process:
+#
+# - read the LDAP query secret
+# - run vault operator init
+# - unseal the vault
+# - store the generated master keys
+# - create an admin policy with all permissions
+# - enable and configure LDAP auth
+# - for each admin group set the admin policy
+# - enable AWS auth
+#
+# The root key returned by the init operation will be revoked when the
+# script exits.
 uiuc_vault_init () {
     local _init_result _init_keys
     local _status _result
@@ -175,7 +211,8 @@ EOF
     vault auth enable aws
 }
 
-# Unseal the vault-server using data from the master key secret.
+# Unseal the vault-server using keys specified as arguments, or
+# retrieved from the master secret.
 uiuc_vault_unseal () {
     declare -a _master_keys
     if [[ $# -gt 0 ]]; then
