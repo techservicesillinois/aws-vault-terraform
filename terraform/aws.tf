@@ -57,11 +57,3 @@ data "aws_iam_role" "task_execution" {
 
 
 data "aws_region" "current" {}
-
-
-data "aws_secretsmanager_secret" "ldap_query" {
-    name = "${var.ldap_query_secret}"
-}
-data "aws_secretsmanager_secret_version" "ldap_query" {
-    secret_id = "${data.aws_secretsmanager_secret.ldap_query.arn}"
-}

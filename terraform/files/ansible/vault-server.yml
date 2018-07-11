@@ -5,6 +5,13 @@
   become: yes
 
   tasks:
+    - name: modules required for the playbook
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - aws-cli
+
     - name: lookup the vault user passwd entry
       command: docker run -i {{ vault_image }} getent passwd vault
       register: getent_vault
@@ -46,22 +53,34 @@
         state: directory
       notify: vault | reload
 
+    - name: get tls key from s3
+      command: aws s3 cp s3://{{ tls_bucket }}/{{ tls_key_object }} -
+      register: tls_key
+      check_mode: false
+      changed_when: false
     - name: tls key file
       copy:
         dest: /vault/config/server.key
         mode: 0600
         owner: "{{ vault_user }}"
         group: "{{ vault_group }}"
-        content: "{{ tls_key }}"
+        content: "{{ tls_key.stdout }}"
       notify: vault | reload
+
+    - name: get tls certificate from s3
+      command: aws s3 cp s3://{{ tls_bucket }}/{{ tls_crt_object }} -
+      register: tls_crt
+      check_mode: false
+      changed_when: false
     - name: tls certificate file
       copy:
         dest: /vault/config/server.crt
         mode: 0644
         owner: "{{ vault_user }}"
         group: "{{ vault_group }}"
-        content: "{{ tls_crt }}"
+        content: "{{ tls_crt.stdout }}"
       notify: vault | reload
+
     - name: tls LDAP CA file
       copy:
         src: ../incommon.pem

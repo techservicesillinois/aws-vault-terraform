@@ -7,8 +7,8 @@ locals {
         project = "${var.project}"
         region = "${data.aws_region.current.name}"
 
-        sss_bind_user = "${element(split("\n", data.aws_secretsmanager_secret_version.ldap_query.secret_string), 0)}"
-        sss_bind_pass = "${element(split("\n", data.aws_secretsmanager_secret_version.ldap_query.secret_string), 1)}"
+        sss_bindcreds_bucket = "${var.deploy_bucket}"
+        sss_bindcreds_object = "${var.deploy_prefix}ldap-credentials.txt"
         sss_allow_groups = "${lower(join(", ", var.vault_server_admin_groups))}"
 
         ssh_allow_groups = "${lower(join(" ", formatlist("\"%s\"", var.vault_server_admin_groups)))}"
@@ -20,10 +20,11 @@ locals {
         project = "${var.project}"
         region = "${data.aws_region.current.name}"
 
-        tls_crt = "${data.aws_s3_bucket_object.vault_server_tls_crt.body}"
-        tls_key = "${data.aws_s3_bucket_object.vault_server_tls_key.body}"
+        tls_bucket = "${var.deploy_bucket}"
+        tls_crt_object = "${var.deploy_prefix}server.crt"
+        tls_key_object = "${var.deploy_prefix}server.key"
 
-        vault_image = "${var.vault_server_image}"
+        vault_image = "${local.vault_server_image}"
         vault_storage = "${aws_dynamodb_table.vault_storage.name}"
     }
 }
@@ -241,7 +242,7 @@ resource "null_resource" "ecs_instance_ansible" {
         environment {
             ANSIBLE_HOST_KEY_CHECKING = "False"
             ANSIBLE_SSH_RETRIES = "3"
-            ANSIBLE_SSH_PRIVATE_KEY_FILE = "${var.key_file}"
+            ANSIBLE_PRIVATE_KEY_FILE = "${pathexpand(var.key_file)}"
         }
     }
 }
@@ -263,7 +264,7 @@ resource "null_resource" "vault_server_ansible" {
         environment {
             ANSIBLE_HOST_KEY_CHECKING = "False"
             ANSIBLE_SSH_RETRIES = "3"
-            ANSIBLE_SSH_PRIVATE_KEY_FILE = "${var.key_file}"
+            ANSIBLE_PRIVATE_KEY_FILE = "${pathexpand(var.key_file)}"
         }
     }
 }

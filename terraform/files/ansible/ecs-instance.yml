@@ -4,6 +4,13 @@
   become: yes
 
   tasks:
+    - name: modules required for the playbook
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - aws-cli
+
     - name: cis | disable unused filesystems
       copy:
         dest: /etc/modprobe.d/uiuc-vault.conf
@@ -221,6 +228,11 @@
       service:
         name: sssd
         enabled: yes
+    - name: sss | get credentials from s3
+      command: aws s3 cp s3://{{ sss_bindcreds_bucket }}/{{ sss_bindcreds_object }} -
+      register: sss_bindcreds
+      check_mode: false
+      changed_when: false
     - name: sss | configure
       copy:
         dest: /etc/sssd/sssd.conf
@@ -267,8 +279,8 @@
             ; ldap_deref_threshold = 0
             ldap_user_ssh_public_key = uiucEduSSHPublicKey
 
-            ldap_default_bind_dn = {{ sss_bind_user }}
-            ldap_default_authtok = {{ sss_bind_pass }}
+            ldap_default_bind_dn = {{ sss_bindcreds.stdout_lines[0] }}
+            ldap_default_authtok = {{ sss_bindcreds.stdout_lines[1] }}
 
             ; ID mapping parameters
             ldap_id_mapping = true

@@ -2,7 +2,7 @@
 # Data
 # =========================================================
 
-data "aws_iam_policy_document" "vault_server_containers_logs" {
+data "aws_iam_policy_document" "vault_server_instance" {
     statement {
         effect = "Allow"
         actions = [
@@ -23,6 +23,16 @@ data "aws_iam_policy_document" "vault_server_containers_logs" {
             "${aws_cloudwatch_log_group.vault_server_containers.arn}",
         ]
     }
+
+    statement {
+        effect = "Allow"
+        actions = [
+            "s3:GetObject*",
+        ]
+        resources = [
+            "arn:aws:s3:::${var.deploy_bucket}/${var.deploy_prefix}*",
+        ]
+    }
 }
 
 data "aws_iam_policy_document" "vault_init_task" {
@@ -41,14 +51,13 @@ data "aws_iam_policy_document" "vault_init_task" {
     statement {
         effect = "Allow"
         actions = [
-            "secretsmanager:DescribeSecret",
-            "secretsmanager:GetSecretValue",
-            "secretsmanager:ListSecretVersionIds",
+            "s3:GetObject*",
         ]
         resources = [
-            "${data.aws_secretsmanager_secret.ldap_query.arn}",
+            "arn:aws:s3:::${var.deploy_bucket}/${var.deploy_prefix}ldap-credentials.txt",
         ]
     }
+
     statement {
         effect = "Allow"
         actions = [
@@ -115,12 +124,12 @@ data "aws_iam_policy_document" "vault_server_task" {
 # Resources
 # =========================================================
 
-resource "aws_iam_policy" "vault_server_containers_logs" {
-    name_prefix = "${var.project}-logs-"
+resource "aws_iam_policy" "vault_server_instance" {
+    name_prefix = "${var.project}-ec2-"
     path = "/${var.project}/"
-    description = "Allow ${var.project} instances to send Docker vault-server container logs to CloudWatch Logs"
+    description = "Allow ${var.project} instances to read from the deployment bucket and send Docker vault-server container logs to CloudWatch Logs"
 
-    policy = "${data.aws_iam_policy_document.vault_server_containers_logs.json}"
+    policy = "${data.aws_iam_policy_document.vault_server_instance.json}"
 
     lifecycle {
         create_before_destroy = true
@@ -183,9 +192,9 @@ resource "aws_iam_role_policy_attachment" "vault_server_instance_logs" {
         create_before_destroy = true
     }
 }
-resource "aws_iam_role_policy_attachment" "vault_server_containers_logs" {
+resource "aws_iam_role_policy_attachment" "vault_server_instance" {
     role = "${aws_iam_role.vault_server.name}"
-    policy_arn = "${aws_iam_policy.vault_server_containers_logs.arn}"
+    policy_arn = "${aws_iam_policy.vault_server_instance.arn}"
 
     lifecycle {
         create_before_destroy = true
@@ -198,7 +207,7 @@ resource "null_resource" "wait_vault_server_role" {
     depends_on = [
         "aws_iam_role_policy_attachment.vault_server_AmazonEC2ContainerServiceforEC2Role",
         "aws_iam_role_policy_attachment.vault_server_instance_logs",
-        "aws_iam_role_policy_attachment.vault_server_containers_logs",
+        "aws_iam_role_policy_attachment.vault_server_instance",
     ]
 
     provisioner "local-exec" {

@@ -8,7 +8,8 @@
         "environment": [
             { "name": "AWS_REGION", "value": "${region}" },
             { "name": "AWS_DEFAULT_REGION", "value": "${region}" },
-            { "name": "UIUC_VAULT_LDAP_SECRET", "value": "${helper_ldap_secret}" },
+            { "name": "UIUC_VAULT_LDAPCREDS_BUCKET", "value": "${helper_ldapcreds_bucket}" },
+            { "name": "UIUC_VAULT_LDAPCREDS_OBJECT", "value": "${helper_ldapcreds_object}" },
             { "name": "UIUC_VAULT_MASTER_SECRET", "value": "${helper_master_secret}" },
             { "name": "VAULT_ADDR", "value": "http://localhost:8100" }
         ],

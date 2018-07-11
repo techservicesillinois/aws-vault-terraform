@@ -81,17 +81,6 @@ variable "deploy_prefix" {
     default = ""
 }
 
-variable "secrets" {
-    type = "map"
-    description = "Encrypted values that will be decrypted using AWS KMS."
-    default = {
-    }
-}
-
-variable "ldap_query_secret" {
-    type = "string"
-    description = "Secrets Manager secret ID or name for LDAP querying; first line is the username and second the password."
-}
 
 # =========================================================
 # Vault Server

@@ -38,7 +38,8 @@ data "template_file" "vault_init_containers" {
                 )
             )
         )}"
-        helper_ldap_secret = "${var.ldap_query_secret}"
+        helper_ldapcreds_bucket = "${var.deploy_bucket}"
+        helper_ldapcreds_object = "${var.deploy_prefix}ldap-credentials.txt"
         helper_master_secret = "${aws_secretsmanager_secret.vault_master.name}"
     }
 }

@@ -143,8 +143,12 @@ uiuc_vault_init () {
         echoerr "ERROR: no UIUC_VAULT_MASTER_SECRET specified"
         return 1
     fi
-    if [[ -z $UIUC_VAULT_LDAP_SECRET ]]; then
-        echoerr "ERROR: no UIUC_VAULT_LDAP_SECRET specified"
+    if [[ -z $UIUC_VAULT_LDAPCREDS_BUCKET ]]; then
+        echoerr "ERROR: no UIUC_VAULT_LDAPCREDS_BUCKET specified"
+        return 1
+    fi
+    if [[ -z $UIUC_VAULT_LDAPCREDS_OBJECT ]]; then
+        echoerr "ERROR: no UIUC_VAULT_LDAPCREDS_OBJECT specified"
         return 1
     fi
     if [[ $# -le 0 ]]; then
@@ -152,9 +156,9 @@ uiuc_vault_init () {
         return 1
     fi
 
-    _result="$(aws secretsmanager get-secret-value --secret-id "$UIUC_VAULT_LDAP_SECRET" | jq -r '.SecretString')"
+    _result="$(aws s3 cp "s3://$UIUC_VAULT_LDAPCREDS_BUCKET/$UIUC_VAULT_LDAPCREDS_OBJECT" -)"
     if [[ -z $_result ]]; then
-        echoerr "ERROR: empty value for $UIUC_VAULT_LDAP_SECRET secret"
+        echoerr "ERROR: empty value for s3://$UIUC_VAULT_LDAPCREDS_BUCKET/$UIUC_VAULT_LDAPCREDS_OBJECT"
         return 1
     fi
     declare -a _ldap_secret; readarray -t _ldap_secret <<< "$_result"

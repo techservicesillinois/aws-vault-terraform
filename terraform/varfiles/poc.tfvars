@@ -5,12 +5,10 @@ environment = "Development"
 
 project = "sbutler1-vault"
 key_name = "sbutler1@illinois.edu"
-key_file = "/Users/sbutler/.ssh/main-work"
+key_file = "~/.ssh/main-work"
 
 deploy_bucket = "uiuc-sbutler1-sandbox"
 deploy_prefix = "vault/"
-
-ldap_query_secret = "sbutler1-vault/ldap"
 
 vault_key_user_roles = [
     "TechServicesStaff",
