@@ -156,7 +156,7 @@ uiuc_vault_init () {
         return 1
     fi
 
-    _result="$(aws s3 cp "s3://$UIUC_VAULT_LDAPCREDS_BUCKET/$UIUC_VAULT_LDAPCREDS_OBJECT" -)"
+    _result="$(aws s3 cp "s3://$UIUC_VAULT_LDAPCREDS_BUCKET/$UIUC_VAULT_LDAPCREDS_OBJECT" - | tr -d '\r')"
     if [[ -z $_result ]]; then
         echoerr "ERROR: empty value for s3://$UIUC_VAULT_LDAPCREDS_BUCKET/$UIUC_VAULT_LDAPCREDS_OBJECT"
         return 1
