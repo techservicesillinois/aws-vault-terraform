@@ -1,0 +1,2 @@
+awscli >=1.15.10
+ansible >=2.4
