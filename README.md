@@ -90,14 +90,14 @@ is protected with its own AWS KMS Custom Key.
 You must provide a set of AD group names of people with admin access to the Vault
 server. The first time this terraform is deployed it will configure Vault to
 allow full access to these users, and also configure the EC2 instance to allow
-SSH/sudo access. SSH access is given by public/private key authentication, so
+SSH/sudo access. SSH access is given by public/private key authentication so
 configure your admin users in AD with their SSH public keys.
 
 **Not all components are configured to support nested groups. For best results
 make sure that your admin groups have direct members and not nested members.**
 
 This terraform also enables AWS authentication which allows you to use AWS users
-and roles to authenticate.
+and roles to authenticate to Vault.
 
 <a id="design-logging"/>
 
@@ -115,7 +115,7 @@ stored on the EC2 instance will be lost. You can recover them from CloudWatch
 Logs.
 
 CloudWatch Logs are encrypted at rest using the AWS KMS Custom key. The logs
-on the instances are stored on encrypted EBS volumes using the AWS provided key.
+on the instances are stored on encrypted EBS volumes using the AWS managed key.
 
 <a id="design-not-fargate"/>
 
@@ -153,6 +153,11 @@ understanding of **Ansible**, **AWS CLI**, **Docker**, **Linux**, **SSH**, and
 `local-exec` provisioners that assume a Linux environment with Ansible, AWS CLI,
 and Docker available. You will need to install and configure several tools
 before running the terraform.
+
+Development of the terraform was done on macOS 10.13 using MacPorts provided
+tools. It should be possible to use Windows Subsystems for Linux to deploy
+this terraform. Some guesses at using WSL are provided, and you should
+otherwise follow the Ubuntu 18.04 instructions.
 
 Since Ansible and the AWS CLI are python projects it might be helpful to create
 a virtual environment and install these tools inside of it. A `requirements.txt`
@@ -215,9 +220,9 @@ sudo apt-get install awscli
 
 ### Docker
 
-Docker must be available as the `docker` command locally. You can run the daemon
-remotely and use `DOCKER_HOST` but it is easier to run Docker Community Edition
-locally for your platform.
+Docker must be available for the terraform provider to connect to. You
+can run the daemon remotely and use `DOCKER_HOST` but it is easier to
+run Docker Community Edition locally for your platform.
 
 Terraform uses the docker daemon to lookup the image hashes for the ECS Tasks.
 This makes sure that even if you use the `latest` tag you will still get
@@ -239,6 +244,11 @@ export DOCKER_HOST='tcp://localhost:2375'
 ```
 
 You will need to set `DOCKER_HOST` for each new terminal you launch.
+
+#### Other Platforms
+
+Terraform will use the unix socket automatically to connect to the local
+docker daemon.
 
 <a id="software-ssh"/>
 
@@ -264,7 +274,7 @@ ssh-keygen -t rsa -b 2048 -C 'vault key' -N '' -f ~/.ssh/vault
 ### Terraform
 
 Terraform must be available as the `terraform` command and version 0.11.7 or
-newer.
+newer. The most common place to place the binary is in `/usr/local/bin`.
 
 [Terraform Download](https://www.terraform.io/downloads.html).
 
@@ -274,18 +284,19 @@ newer.
 ## Setup
 
 A couple resources must exist before running the terraform. **Make sure to switch
-to the "Ohio" region in the console before performing these steps!**
+to the "Ohio" region in the console before performing these steps!** The
+Ohio region is coded into the terraform as the region to deploy to.
 
 <a id="setup-awscli"/>
 
 ### AWS CLI
 
 If you do not already AWS CLI configured then create an IAM user with
-"programmatic access" only. For permissions attached the existing
+"programmatic access" only. For permissions attach the existing
 "AdministatorAccess" policy. "PowerUserAccess" is not enough because this
 terraform creates IAM roles and policies.
 
-As the last step of creating the user you will get a CSV file with the access
+As the last step of creating the user you will download a CSV file with the access
 key and secret access key. Run `aws configure` and use these values. For
 default region us "us-east-2" (although the region is encoded in the terraform).
 
@@ -294,8 +305,8 @@ default region us "us-east-2" (although the region is encoded in the terraform).
 ### AWS VPC
 
 You will need a VPC that is peered with the Core Services VPC for LDAP
-to work. You do not need the campus subnets and VPN for the terraform
-at this time.
+authentication to work. You do not need the campus subnets and VPN for
+the terraform at this time.
 
 [UIUC AWS VPC options and instructions.](https://answers.uillinois.edu/illinois/page.php?id=71015)
 
@@ -327,6 +338,12 @@ thing to do is create a table called `terraform` with a partition key named
 To bootstrap some of the resources secure materials must be stored in S3. This
 bucket can also be used for storing the terraform remote state. Create a bucket
 with versioning enabled and AES-256 encryption with the AWS managed key.
+
+We suggest using the domain name of your Vault server as part of the bucket
+name with the region as a suffix. For example, for a Vault server deployed
+as "vault.example.illinois.edu" into Ohio the deployment bucket name might
+be "deploy-vault.example.illinois.edu-us-east-2". This should make sure your
+bucker name does not conflict with other buckets.
 
 <a id="setup-ssl"/>
 
@@ -521,6 +538,7 @@ values. :exclamation: means the variable is required.
 | key_file :exclamation:                    |                                       | "~/.ssh/vault"                                                                        | Path to the SSH private key file on your local machine. |
 | enhanced_monitoring                       | "0"                                   | "1"                                                                                   | Enable enhanced monitoring on EC2 instances created. |
 | public_subnets :exclamation:              |                                       | \[ "techsvcsandbox-public1-a-net", "techsvcsandbox-public1-b-net" \]                  | List of names of public subnets. You should specify at least two for high availability. |
+| extra_admin_cidrs                         | \[\]                                  | \[ "123.123.231.321/32" \]                                                               | List of CIDRs (subnet/bits) that should be allowed SSH access to the instances. The campus subnet ranges are always included. |
 | deploy_bucket :exclamation:               |                                       | "deploy-vault.example.illinois.edu-us-east-2"                                         | Name of the bucket that contains the deployment resources (`server.key`, `server.crt`, `ldap-credentials.txt`). |
 | deploy_prefix                             |                                       | "test/"                                                                               | Prefix of the resources inside the deployment bucket. This lets you use the same bucket for multiple deployments. If specified it must not begin with a "/" and must end with a "/". |
 | vault_key_user_roles                      | \[\]                                  | \[ "TechServicesStaff" \]                                                             | List of IAM role names that are given access to the AWS KMS Custom Key protecting some of the resources. People with these roles will be able to read the master keys secret and the CloudWatch Logs. |
@@ -535,11 +553,11 @@ values. :exclamation: means the variable is required.
 | vault_storage_min_rcu                     | "5"                                   | "2"                                                                                   | Minimum number of Read Capacity Units for the DynamoDB table. Do not use a number smaller than 2. |
 | vault_storage_max_wcu                     | "20"                                  | "100"                                                                                 | Maximum number of Write Capacity Units for the DynamoDB table. |
 | vault_storage_min_wcu                     | "5"                                   | "2"                                                                                   | Minimum number of Write Capacity Units for the DynamoDB table. Do not use a number smaller than 2. |
-| vault_storage_rcu_target                  | "70"                                  | "80"                                                                                  | Target percentage for autoscaling of the RCU. |
-| vault_storage_wcu_target                  | "70"                                  | "80"                                                                                  | Target percentage for autoscaling of the WCU. |
+| vault_storage_rcu_target                  | "70"                                  | "80"                                                                                  | Target percentage for autoscaling of the RCU. Below this percentage it will remove RCUs and above it will add them. |
+| vault_storage_wcu_target                  | "70"                                  | "80"                                                                                  | Target percentage for autoscaling of the WCU. Below this percentage it will remove WCUs and above it will add them. |
 
 Construct a file in `varfiles` with your variable choices. Using the
-examples above, we might have a `varfiles/example.tfvars` that looks
+examples above we might have a `varfiles/example.tfvars` that looks
 like this:
 
 ```
