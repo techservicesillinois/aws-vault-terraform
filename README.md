@@ -26,6 +26,14 @@ environment.
     * [SSL Certificate Files and AWS Certificate Manager](#setup-ssl)
     * [LDAP Authentication Bind](#setup-ldap)
 * [Terraform Variables](#terraform-variables)
+* [Terraform Deploy](#terraform-deploy)
+* [Post Deployment](#post-deployment)
+* [Updates](#updates)
+    * [EC2 Instances](#updates-ec2)
+    * [Vault Server](#updates-vault-server)
+    * [SSL Certificates](#updates-ssl)
+* [TODO](#todo)
+
 
 <a id="design"/>
 
@@ -479,6 +487,7 @@ you follow this process:
     * Header: add "Content-Type" as "text/plain". Make sure to **click "Save"**
       or your value might be ignored!
 
+
 <a id="terraform-variables"/>
 
 ## Terraform Variables
@@ -517,3 +526,248 @@ values. :exclamation: means the variable is required.
 | vault_storage_min_wcu                     | "5"                                   | "2"                                                                                   | Minimum number of Write Capacity Units for the DynamoDB table. Do not use a number smaller than 2. |
 | vault_storage_rcu_target                  | "70"                                  | "80"                                                                                  | Target percentage for autoscaling of the RCU. |
 | vault_storage_wcu_target                  | "70"                                  | "80"                                                                                  | Target percentage for autoscaling of the WCU. |
+
+Construct a file in `varfiles` with your variable choices. Using the
+examples above, we might have a `varfiles/example.tfvars` that looks
+like this:
+
+```
+service = "Vault Example"
+contact = "vault-example@illinois.edu"
+data_classification = "Sensitive"
+environment = "Test"
+
+project = "vault-exmp"
+key_name = "Vault Example"
+key_file = "~/.ssh/vault"
+enhanced_monitoring = "1"
+public_subnets = [
+    "techsvcsandbox-public1-a-net",
+    "techsvcsandbox-public1-b-net",
+]
+deploy_bucket = "deploy-vault.example.illinois.edu-us-east-2"
+deploy_prefix = "test/"
+
+vault_key_user_roles = [
+    "TechServicesStaff",
+]
+vault_server_admin_groups = [
+    "Admin Group 1",
+    "Admin Group 2",
+]
+vault_server_private_ips = [
+    "10.224.255.52",
+    "10.224.255.182",
+]
+vault_server_fqdn = "vault.example.illinois.edu"
+vault_server_public_fqdns = [
+    "server-a.vault.example.illinois.edu",
+    "server-b.vault.example.illinois.edu",
+]
+vault_server_instance_type = "t2.medium"
+vault_server_image = "vault:latest"
+vault_helper_image = "sbutler/uiuc-vault-helper:latest"
+
+vault_storage_max_rcu = "100"
+vault_storage_min_rcu = "2"
+vault_storage_max_wcu = "100"
+vault_storage_min_wcu = "2"
+vault_storage_rcu_target = "80"
+vault_storage_wcu_target = "80"
+```
+
+
+<a id="terraform-deploy"/>
+
+## Terraform Deployment
+
+Now that everything has been setup, with our local and remote
+environments prepared, we're ready to deploy with the terraform
+configuration. All of these steps take place in the `terraform`
+directory.
+
+You will need to edit the `_providers.tf` file and change some of
+the settings. There are some things that happen early in the terraform
+process so we can't use variables for them. Find this block:
+
+```
+terraform {
+    required_version = "~> 0.11.7"
+
+    backend "s3" {
+        bucket = "deploy-vault.example.illinois.edu-us-east-2"
+        key = "test/terraform/state"
+        dynamodb_table = "terraform"
+
+        encrypt = true
+
+        region = "us-east-2"
+    }
+}
+```
+
+Review and update these parameters. Do not use the example value
+given for `bucket`:
+
+* `bucket`: set this to the same name as your deployment bucket,
+  unless you already have an S3 bucket setup to store terraform state.
+  Using the deployment bucket here should always be acceptable. In
+  our example a good value might be "deploy-vault.example.illinois.edu-us-east-2".
+* `key`: this is the name of the remote state as stored in the
+  bucket. If you've chosen a deployment prefix above then you should
+  probably use that here along with "terraform/state". In our example
+  a good value might be "test/terraform/state".
+* `dynamodb_table`: name of the table we created earlier for
+  terraform locking. If you followed the example then "terraform" is
+  an acceptable value.
+
+*WSL: remember to run `export DOCKET_HOST='tcp://localhost:2375'` in
+your terminal*
+
+The first time you run a terraform or after any updates (`git pull`)
+you should always re-initialize it.
+
+```
+terraform init
+```
+
+That should tell you that terraform has been successfully initialized.
+If you see any errors you need to stop and resolve them before
+continuing. Sometimes deleting the `.terraform` directory can help if
+you're moving between accounts or change the remote state configuration.
+
+Next step is to ask terraform to build a plan of our changes. If we
+use the example variable file above then this command looks like:
+
+```
+terraform plan \
+    -var-file varfiles/example.tfvars \
+    -out changes.tfplan
+```
+
+You should see a long list of resources to be created if this is your
+first time running it, or a list of resources to be changed/deleted
+if you're performing updates. Take a look and verify that the plan
+makes sense.
+
+*Note: all critical resources in the terraform should be protected
+against deletion. You shouldn't be able to accidentally delete something
+that's not recoverable.*
+
+If the plan looks OK then run the command to apply it:
+
+```
+terraform apply changes.tfplan
+```
+
+After a time this should complete successfully and output some basic
+information about the resources it created. If you see errors then
+resolve them and re-run the `terraform plan` and `terraform apply`
+commands.
+
+Once terraform successfully completes you now have your Vault server!
+
+
+<a id="post-deployment"/>
+
+## Post Deployment
+
+Now that you have IP's and hostnames you can finish setting up the DNS
+records in IPAM. If you no longer have the output of `terraform apply`
+then run `terraform output` to get these values:
+
+* `vault_server_lb`: create a CNAME record from your primary domain to
+  this hostname. It must be a CNAME record since AWS frequently changes
+  the IPs of the load balancers.
+* `vault_server_public_ips`: you will get one IP for each EC2 instance
+  running Vault. Create the A records for the IPs in this list. The
+  first IP in this list corresponds to the first entry in
+  `vault_server_public_fqdns`, the second the second entry, etc.
+
+Once the DNS changes are available you should be able to visit your
+server at its primary domain on port 8200. For example,
+https://vault.example.illinois.edu:8200/ui/. If you are using the
+Vault CLI then the `VAULT_ADDR` variable would be
+`https://vault.example.illinois.edu:8200/` (without the `/ui` portion).
+
+Select "LDAP" for the authentication method and log in with a user
+in one of your admin groups. The Vault UI is fairly complete for basic
+operations but you might want to familiarize yourself with the Vault
+CLI for administration.
+
+You should also be able to SSH to the EC2 instances with a user in
+your admin groups. SSH will alway use public key authentication so
+if you haven't already then add your SSH public keys to LDAP. You can
+do this using the "My.Engineering" portals for your department or, for
+OU managed accounts, add the `uiucEduSSHPublicKey` attribute. You might
+also want to set your `loginShell` while you're there.
+
+*If SSH as your admin user isn't working then you can use the `ec2-user`
+with the SSH private key we created for this terraform.*
+
+You should also take a moment to find your logs in CloudWatch Logs.
+You can see a lot of information about what Vault is doing in the
+"/$project/ecs-containers/vault-server" log group.
+
+
+<a id="updates"/>
+
+## Updates
+
+There are several components of the vault infrastructure you will need
+to keep up to date.
+
+<a id="updates-ec2"/>
+
+### EC2 Instances
+
+The Vault servers are the ECS Optimized Amazon Linux image. You can
+update them with simple Ansible playbooks or by using the `yum update`
+command.
+
+Updates to the terraform Ansible will also apply on the next run of
+the terraform.
+
+<a id="updates-vault-server"/>
+
+### Vault Server
+
+If you are using the "vault:latest" image for the server then you will
+get updates the next time you run terraform. If you are using a specific
+tag then you will need to change the version in the tag yourself to
+get updates.
+
+<a id="updates-ssl"/>
+
+### SSL Certificates
+
+When its time to renew your certificates you follow the same basic
+steps as when you first requested them. You can use the same `server.csr`
+file to request the renewal.
+
+After you get your signed certificate back you will need to update it
+in two places:
+
+1. AWS Certificate Manager (ACM): find the certificate you imported
+   and [reimport it](https://docs.aws.amazon.com/acm/latest/userguide/import-reimport.html).
+2. Deployment Bucket: build a new `server.crt` file and upload it using
+   the same process to the deployment bucket. When you next run the
+   terraform apply/plan commands it should detect the change and reload
+   the Vault servers.
+
+
+<a id="todo"/>
+
+## TODO
+
+Things it would be nice to add:
+
+1. Monitoring and notifications using CloudWatch.
+    - Docker container stops/starts.
+    - Host CPU usage.
+    - Host disk space.
+2. Restructure for Fargate.
+    - Verify `IPC_LOCK` isn't required.
+    - Custom image to do unseal/init.
+    - Update hostnames with public IPs.
+3. SAML authentication plugin. Requires custom Vault development.
