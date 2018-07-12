@@ -20,6 +20,7 @@ environment.
     * [Terraform](#software-terraform)
 * [Setup](#setup)
     * [AWS CLI](#setup-awscli)
+    * [AWS VPC](#setup-awsvpc)
     * [SSH Key Pair: EC2](#setup-keypair)
     * [Terraform Locking: DynamoDB](#setup-terraform-dynamodb)
     * [Deployment Bucket: S3](#setup-deploy-bucket)
@@ -287,6 +288,16 @@ terraform creates IAM roles and policies.
 As the last step of creating the user you will get a CSV file with the access
 key and secret access key. Run `aws configure` and use these values. For
 default region us "us-east-2" (although the region is encoded in the terraform).
+
+<a id="setup-awsvpc"/>
+
+### AWS VPC
+
+You will need a VPC that is peered with the Core Services VPC for LDAP
+to work. You do not need the campus subnets and VPN for the terraform
+at this time.
+
+[UIUC AWS VPC options and instructions.](https://answers.uillinois.edu/illinois/page.php?id=71015)
 
 <a id="setup-keypair"/>
 
