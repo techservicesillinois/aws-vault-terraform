@@ -258,6 +258,8 @@ resource "null_resource" "vault_server_ansible" {
         ansible_extravars = "${jsonencode(local.vault_server_ansible_extravars)}"
         cluster_addr = "${element(aws_instance.vault_server.*.private_ip, count.index)}"
         api_addr = "${element(var.vault_server_public_fqdns, count.index)}"
+        tls_crt_etag = "${data.aws_s3_bucket_object.vault_server_tls_key.etag}"
+        tls_key_etag = "${data.aws_s3_bucket_object.vault_server_tls_crt.etag}"
     }
 
     provisioner "local-exec" {
