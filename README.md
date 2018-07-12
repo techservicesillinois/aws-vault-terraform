@@ -33,6 +33,7 @@ environment.
 * [Terraform Variables](#terraform-variables)
 
 <a id="design"/>
+
 ## Design
 
 Vault provides a Docker image that we will run on ECS, with one server per
@@ -46,6 +47,7 @@ to the master server. To support redirection, each server is directly accessible
 without the load balancer.
 
 <a id="design-dns"/>
+
 ### DNS
 
 You will need to plan for the following hostnames, which will be registered
@@ -60,6 +62,7 @@ after the terraform is successfully run.
 If you have more than two servers then expand the scheme appropriately.
 
 <a id="design-storage"/>
+
 ### Storage: DynamoDB
 
 Vault stores its data in DynamoDB, which is one of the highly available backends.
@@ -68,6 +71,7 @@ encrypted by Vault. Point In Time Recovery (PITR) is enabled on the table to
 support rolling back the storage to a previous version.
 
 <a id="design-keys"/>
+
 ### Master Keys: Secrets Manager
 
 Each Vault server starts in a sealed state and needs several master keys to
@@ -76,6 +80,7 @@ launches a helper to unseal a newly started Vault server. The master keys secret
 is protected with its own AWS KMS Custom Key.
 
 <a id="design-auth"/>
+
 ### Authentication: UOFI AD & AWS
 
 You must provide a set of AD group names of people with admin access to the Vault
@@ -91,6 +96,7 @@ This terraform also enables AWS authentication which allows you to use AWS users
 and roles to authenticate.
 
 <a id="design-logging"/>
+
 ### Logging: CloudWatch Logs
 
 Logs from the Docker containers will be stored in CloudWatch Logs. You can then
@@ -108,6 +114,7 @@ CloudWatch Logs are encrypted at rest using the AWS KMS Custom key. The logs
 on the instances are stored on encrypted EBS volumes using the AWS provided key.
 
 <a id="design-not-fargate"/>
+
 ### Why Not Fargate?
 
 Fargate is a new AWS serverless technology for running Docker containers. It was
@@ -133,6 +140,7 @@ built ones, so EC2 was chosen as the ECS technology.
 
 
 <a id="software"/>
+
 ## Software Requirements
 
 This is an advanced terraform to deploy. You will need to have some
@@ -147,6 +155,7 @@ a virtual environment and install these tools inside of it. A `requirements.txt`
 is provided for people who want to do this.
 
 <a id="software-ansible"/>
+
 ### Ansible
 
 Ansible must be available as the `ansible-playbook` command and version 2.4 or
@@ -157,6 +166,7 @@ You can use Ansible to keep the EC2 instances updated after deploying this
 terraform.
 
 <a id="software-ansible-macports"/>
+
 #### MacPorts
 
 ```
@@ -165,6 +175,7 @@ sudo port select --set ansible py36-ansible
 ```
 
 <a id="software-ansible-ubuntu1804"/>
+
 #### Ubuntu 18.04
 
 ```
@@ -172,6 +183,7 @@ sudo apt-get install ansible
 ```
 
 <a id="software-awscli"/>
+
 ### AWS CLI
 
 The AWS CLI must be available as the `aws` command and version 1.15.10 or newer.
@@ -179,6 +191,7 @@ Older versions might work but have not been tested. The AWS CLI is used to
 launch ECS tasks to initialize vault.
 
 <a id="software-awscli-macports"/>
+
 #### MacPorts
 
 ```
@@ -187,6 +200,7 @@ sudo port select --set awscli py36-awscli
 ```
 
 <a id="software-awscli-ubuntu1804"/>
+
 #### Ubuntu 18.04
 
 ```
@@ -194,6 +208,7 @@ sudo apt-get install awscli
 ```
 
 <a id="software-docker"/>
+
 ### Docker
 
 Docker must be available as the `docker` command locally. You can run the daemon
@@ -208,6 +223,7 @@ Downloads: [Docker for Mac](https://www.docker.com/docker-mac);
 [Docker for Windows](https://www.docker.com/docker-windows).
 
 <a id="software-docker-wsl"/>
+
 #### Windows Subsystems for Linux
 
 If you are using Docker for Windows and running the terraform in Windows
@@ -222,6 +238,7 @@ export DOCKER_HOST='tcp://localhost:2375'
 You will need to set `DOCKER_HOST` for each new terminal you launch.
 
 <a id="software-ssh"/>
+
 ### SSH
 
 Several of these tools will use SSH public/private key authentication to
@@ -240,6 +257,7 @@ ssh-keygen -t rsa -b 2048 -C 'vault key' -N '' -f ~/.ssh/vault
 ```
 
 <a id="software-terraform"/>
+
 ### Terraform
 
 Terraform must be available as the `terraform` command and version 0.11.7 or
@@ -249,12 +267,14 @@ newer.
 
 
 <a id="setup"/>
+
 ## Setup
 
 A couple resources must exist before running the terraform. **Make sure to switch
 to the "Ohio" region in the console before performing these steps!**
 
 <a id="setup-awscli"/>
+
 ### AWS CLI
 
 If you do not already AWS CLI configured then create an IAM user with
@@ -267,6 +287,7 @@ key and secret access key. Run `aws configure` and use these values. For
 default region us "us-east-2" (although the region is encoded in the terraform).
 
 <a id="setup-keypair"/>
+
 ### SSH Key Pair: EC2
 
 Take your existing SSH public key or the one you created earlier (`vault.pub`)
@@ -274,6 +295,7 @@ and import it as a Key Pair in the EC2 section. The name you give it during the
 import will be used later when setting up the variables file.
 
 <a id="setup-terraform-dynamodb"/>
+
 ### Terraform Locking: DynamoDB
 
 Terraform uses a DynamoDB table to lock the remote state so that several people
@@ -286,6 +308,7 @@ thing to do is create a table called `terraform` with a partition key named
 `LockID` (string).
 
 <a id="setup-deploy-bucket"/>
+
 ### Deployment Bucket: S3
 
 To bootstrap some of the resources secure materials must be stored in S3. This
@@ -293,6 +316,7 @@ bucket can also be used for storing the terraform remote state. Create a bucket
 with versioning enabled and AES-256 encryption with the AWS managed key.
 
 <a id="setup-ssl"/>
+
 ### SSL Certificate Files and AWS Certificate Manager
 
 You will need an SSL SAN certificate with the primary and all server hostnames
@@ -431,6 +455,7 @@ The certificate in ACM is required for the load balancer.
 * Certificate chain: the intermediary certificates.
 
 <a id="setup-ldap"/>
+
 ### LDAP Authenticated Bind
 
 For configuring SSSD and Vault LDAP authentication we need an LDAP user to bind
@@ -461,6 +486,7 @@ you follow this process:
       or your value might be ignored!
 
 <a id="terraform-variables"/>
+
 ## Terraform Variables
 
 It is helpful to create a "tfvars" file to store the variables for your
