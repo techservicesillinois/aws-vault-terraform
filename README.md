@@ -226,7 +226,6 @@ Subsystems for Linux then you need to set Docker to listen on `localhost:2375`.
 Then from in the WSL terminal:
 
 ```
-apt-get install docker.io
 export DOCKER_HOST='tcp://localhost:2375'
 ```
 
