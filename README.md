@@ -607,7 +607,7 @@ terraform {
 
     backend "s3" {
         bucket = "deploy-vault.example.illinois.edu-us-east-2"
-        key = "test/terraform/state"
+        key = "terraform/state"
         dynamodb_table = "terraform"
 
         encrypt = true
