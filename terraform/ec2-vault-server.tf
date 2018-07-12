@@ -194,7 +194,7 @@ resource "aws_instance" "vault_server" {
 
         Service = "${var.service}"
         Contact = "${var.contact}"
-        DataClassification = "Sensitive"
+        DataClassification = "${var.data_classification}"
         Environment = "${var.environment}"
 
         Project = "${var.project}"
@@ -206,7 +206,7 @@ resource "aws_instance" "vault_server" {
 
         Service = "${var.service}"
         Contact = "${var.contact}"
-        DataClassification = "Sensitive"
+        DataClassification = "${var.data_classification}"
         Environment = "${var.environment}"
 
         Project = "${var.project}"

@@ -11,7 +11,7 @@ resource "aws_cloudwatch_log_group" "instance_logs_cron" {
     tags {
         Service = "${var.service}"
         Contact = "${var.contact}"
-        DataClassification = "Sensitive"
+        DataClassification = "${var.data_classification}"
         Environment = "${var.environment}"
 
         Project = "${var.project}"
@@ -28,7 +28,7 @@ resource "aws_cloudwatch_log_group" "instance_logs_docker" {
     tags {
         Service = "${var.service}"
         Contact = "${var.contact}"
-        DataClassification = "Sensitive"
+        DataClassification = "${var.data_classification}"
         Environment = "${var.environment}"
 
         Project = "${var.project}"
@@ -45,7 +45,7 @@ resource "aws_cloudwatch_log_group" "instance_logs_ecsagent" {
     tags {
         Service = "${var.service}"
         Contact = "${var.contact}"
-        DataClassification = "Sensitive"
+        DataClassification = "${var.data_classification}"
         Environment = "${var.environment}"
 
         Project = "${var.project}"
@@ -62,7 +62,7 @@ resource "aws_cloudwatch_log_group" "instance_logs_messages" {
     tags {
         Service = "${var.service}"
         Contact = "${var.contact}"
-        DataClassification = "Sensitive"
+        DataClassification = "${var.data_classification}"
         Environment = "${var.environment}"
 
         Project = "${var.project}"
@@ -79,7 +79,7 @@ resource "aws_cloudwatch_log_group" "instance_logs_secure" {
     tags {
         Service = "${var.service}"
         Contact = "${var.contact}"
-        DataClassification = "Sensitive"
+        DataClassification = "${var.data_classification}"
         Environment = "${var.environment}"
 
         Project = "${var.project}"

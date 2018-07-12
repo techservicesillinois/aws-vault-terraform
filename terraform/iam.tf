@@ -110,7 +110,7 @@ resource "aws_kms_key" "vault" {
     tags {
         Service = "${var.service}"
         Contact = "${var.contact}"
-        DataClassification = "Sensitive"
+        DataClassification = "${var.data_classification}"
         Environment = "${var.environment}"
 
         Project = "${var.project}"
@@ -137,7 +137,7 @@ resource "aws_secretsmanager_secret" "vault_master" {
     tags {
         Service = "${var.service}"
         Contact = "${var.contact}"
-        DataClassification = "Sensitive"
+        DataClassification = "${var.data_classification}"
         Environment = "${var.environment}"
 
         Project = "${var.project}"

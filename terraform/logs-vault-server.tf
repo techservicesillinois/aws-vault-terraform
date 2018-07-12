@@ -11,7 +11,7 @@ resource "aws_cloudwatch_log_group" "vault_server_containers" {
     tags {
         Service = "${var.service}"
         Contact = "${var.contact}"
-        DataClassification = "Sensitive"
+        DataClassification = "${var.data_classification}"
         Environment = "${var.environment}"
 
         Project = "${var.project}"

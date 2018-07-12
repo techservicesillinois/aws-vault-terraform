@@ -32,7 +32,7 @@ resource "aws_dynamodb_table" "vault_storage" {
     tags {
         Service = "${var.service}"
         Contact = "${var.contact}"
-        DataClassification = "Sensitive"
+        DataClassification = "${var.data_classification}"
         Environment = "${var.environment}"
 
         Project = "${var.project}"

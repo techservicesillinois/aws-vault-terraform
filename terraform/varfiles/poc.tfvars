@@ -1,6 +1,6 @@
 service = "ICS Vault"
 contact = "sbutler1@illinois.edu"
-data_classification = "Internal"
+data_classification = "Sensitive"
 environment = "Development"
 
 project = "sbutler1-vault"
