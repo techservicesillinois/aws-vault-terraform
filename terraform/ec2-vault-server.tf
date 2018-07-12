@@ -256,6 +256,8 @@ resource "null_resource" "vault_server_ansible" {
     triggers {
         ansible_md5 = "${md5(file("${path.module}/files/ansible/vault-server.yml"))}"
         ansible_extravars = "${jsonencode(local.vault_server_ansible_extravars)}"
+        cluster_addr = "${element(aws_instance.vault_server.*.private_ip, count.index)}"
+        api_addr = "${element(var.vault_server_public_fqdns, count.index)}"
     }
 
     provisioner "local-exec" {
