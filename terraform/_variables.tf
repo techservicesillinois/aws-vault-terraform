@@ -54,16 +54,6 @@ variable "public_subnets" {
     description = "Public subnet names for resources publically accessible."
 }
 
-variable "campus_subnets" {
-    type = "list"
-    description = "Campus subnet names for resources with campus routes."
-}
-
-variable "private_subnets" {
-    type = "list"
-    description = "Private subnet names for resource not reacable by the public or campus."
-}
-
 variable "extra_admin_cidrs" {
     type = "list"
     description = "Extra CIDRs allowed to access the admin instance."
