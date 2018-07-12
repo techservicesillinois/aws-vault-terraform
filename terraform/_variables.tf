@@ -56,7 +56,7 @@ variable "public_subnets" {
 
 variable "extra_admin_cidrs" {
     type = "list"
-    description = "Extra CIDRs allowed to access the admin instance."
+    description = "Extra CIDRs allowed to SSH to the admin instance. All UIUC campus subnets are allowed by default."
     default = []
 }
 

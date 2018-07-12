@@ -113,3 +113,33 @@ resource "aws_security_group" "uiuc_campus_ssh" {
         NetID = "${var.contact}"
     }
 }
+
+resource "aws_security_group" "extra_ssh" {
+    count = "${length(var.extra_admin_cidrs) > 0 ? 1 : 0}"
+
+    name_prefix = "${var.project}-"
+    description = "Allow SSH from extra addresses."
+
+    vpc_id = "${data.aws_vpc.public.id}"
+
+    ingress {
+        description = "Extra"
+
+        protocol = "tcp"
+        from_port = 22
+        to_port = 22
+
+        cidr_blocks = [ "${var.extra_admin_cidrs}" ]
+    }
+
+    tags {
+        Name = "${var.project}-extra-ssh"
+
+        Service = "${var.service}"
+        Contact = "${var.contact}"
+        Environment = "${var.environment}"
+
+        Project = "${var.project}"
+        NetID = "${var.contact}"
+    }
+}

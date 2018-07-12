@@ -162,10 +162,10 @@ resource "aws_instance" "vault_server" {
     availability_zone = "${element(data.aws_subnet.public.*.availability_zone, count.index)}"
     subnet_id = "${element(data.aws_subnet.public.*.id, count.index)}"
     private_ip = "${element(var.vault_server_private_ips, count.index)}"
-    vpc_security_group_ids = [
-        "${aws_security_group.uiuc_campus_ssh.id}",
-        "${aws_security_group.vault_server.id}",
-    ]
+    vpc_security_group_ids = [ "${distinct(concat(
+        list("${aws_security_group.uiuc_campus_ssh.id}", "${aws_security_group.vault_server.id}"),
+        "${aws_security_group.extra_ssh.*.id}",
+    ))}" ]
 
     instance_initiated_shutdown_behavior = "stop"
     monitoring = "${var.enhanced_monitoring}"
