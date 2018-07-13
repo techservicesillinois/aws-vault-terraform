@@ -54,9 +54,25 @@ variable "public_subnets" {
     description = "Public subnet names for resources publically accessible."
 }
 
-variable "extra_admin_cidrs" {
+variable "ssh_allow_campus" {
+    type = "string"
+    description = "Allow the campus subnet ranges to SSH to the Vault server instances."
+    default = "1"
+}
+variable "ssh_allow_cidrs" {
     type = "list"
-    description = "Extra CIDRs allowed to SSH to the admin instance. All UIUC campus subnets are allowed by default."
+    description = "CIDRs allowed to SSH to the admin instance. Use 'ssh_allow_campus' to allow all campus ranges."
+    default = []
+}
+
+variable "app_allow_campus" {
+    type = "string"
+    description = "Allow the campus subnet ranges to access the Vault server application ports."
+    default = "1"
+}
+variable "app_allow_cidrs" {
+    type = "list"
+    description = "CIDRs allowed to access the Vault application ports. Use 'app_allow_campus' to allow all campus ranges."
     default = []
 }
 

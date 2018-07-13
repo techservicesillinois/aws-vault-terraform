@@ -99,7 +99,7 @@ resource "aws_eip" "vault_server" {
 }
 
 
-resource "aws_security_group" "vault_server" {
+resource "aws_security_group" "vault_server_app" {
     name_prefix = "${var.project}-"
     description = "Allow vault traffic."
 
@@ -112,12 +112,27 @@ resource "aws_security_group" "vault_server" {
         from_port = 8200
         to_port = 8200
 
-        cidr_blocks = [
-            "0.0.0.0/0",
+        cidr_blocks = [ "${distinct(concat(
+            compact(list(
+                var.app_allow_campus ? "72.36.64.0/18" : "",
+                var.app_allow_campus ? "128.174.0.0/16" : "",
+                var.app_allow_campus ? "130.126.0.0/16" : "",
+                var.app_allow_campus ? "192.17.0.0/16" : "",
+                var.app_allow_campus ? "10.192.0.0/10" : "",
+                var.app_allow_campus ? "172.16.0.0/13" : "",
+                var.app_allow_campus ? "64.22.176.0/20" : "",
+                var.app_allow_campus ? "204.93.0.0/19" : "",
+                var.app_allow_campus ? "141.142.0.0/16" : "",
+                var.app_allow_campus ? "198.17.196.0/25" : "",
+                var.app_allow_campus ? "172.24.0.0/13" : "",
+            )),
+            var.app_allow_cidrs,
+        ))}" ]
+
+        security_groups = [
+            "${aws_security_group.vault_server_lb.id}",
         ]
-        ipv6_cidr_blocks = [
-            "::/0",
-        ]
+        self = true
     }
 
     ingress {
@@ -139,7 +154,48 @@ resource "aws_security_group" "vault_server" {
     }
 
     tags {
-        Name = "${var.project}-server"
+        Name = "${var.project}-app"
+
+        Service = "${var.service}"
+        Contact = "${var.contact}"
+        Environment = "${var.environment}"
+
+        Project = "${var.project}"
+        NetID = "${var.contact}"
+    }
+}
+
+resource "aws_security_group" "vault_server_ssh" {
+    name_prefix = "${var.project}-"
+    description = "Allow SSH from approved addresses."
+
+    vpc_id = "${data.aws_vpc.public.id}"
+
+    ingress {
+        protocol = "tcp"
+        from_port = 22
+        to_port = 22
+
+        cidr_blocks = [ "${distinct(concat(
+            compact(list(
+                var.ssh_allow_campus ? "72.36.64.0/18" : "",
+                var.ssh_allow_campus ? "128.174.0.0/16" : "",
+                var.ssh_allow_campus ? "130.126.0.0/16" : "",
+                var.ssh_allow_campus ? "192.17.0.0/16" : "",
+                var.ssh_allow_campus ? "10.192.0.0/10" : "",
+                var.ssh_allow_campus ? "172.16.0.0/13" : "",
+                var.ssh_allow_campus ? "64.22.176.0/20" : "",
+                var.ssh_allow_campus ? "204.93.0.0/19" : "",
+                var.ssh_allow_campus ? "141.142.0.0/16" : "",
+                var.ssh_allow_campus ? "198.17.196.0/25" : "",
+                var.ssh_allow_campus ? "172.24.0.0/13" : "",
+            )),
+            var.ssh_allow_cidrs,
+        ))}" ]
+    }
+
+    tags {
+        Name = "${var.project}-ssh"
 
         Service = "${var.service}"
         Contact = "${var.contact}"
@@ -162,10 +218,10 @@ resource "aws_instance" "vault_server" {
     availability_zone = "${element(data.aws_subnet.public.*.availability_zone, count.index)}"
     subnet_id = "${element(data.aws_subnet.public.*.id, count.index)}"
     private_ip = "${element(var.vault_server_private_ips, count.index)}"
-    vpc_security_group_ids = [ "${distinct(concat(
-        list("${aws_security_group.uiuc_campus_ssh.id}", "${aws_security_group.vault_server.id}"),
-        "${aws_security_group.extra_ssh.*.id}",
-    ))}" ]
+    vpc_security_group_ids = [
+        "${aws_security_group.vault_server_app.id}",
+        "${aws_security_group.vault_server_ssh.id}",
+    ]
 
     instance_initiated_shutdown_behavior = "stop"
     monitoring = "${var.enhanced_monitoring}"
