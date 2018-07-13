@@ -538,7 +538,10 @@ values. :exclamation: means the variable is required.
 | key_file :exclamation:                    |                                       | "~/.ssh/vault"                                                                        | Path to the SSH private key file on your local machine. |
 | enhanced_monitoring                       | "0"                                   | "1"                                                                                   | Enable enhanced monitoring on EC2 instances created. |
 | public_subnets :exclamation:              |                                       | \[ "techsvcsandbox-public1-a-net", "techsvcsandbox-public1-b-net" \]                  | List of names of public subnets. You should specify at least two for high availability. |
-| extra_admin_cidrs                         | \[\]                                  | \[ "123.123.231.321/32" \]                                                               | List of CIDRs (subnet/bits) that should be allowed SSH access to the instances. The campus subnet ranges are always included. |
+| ssh_allow_campus                          | true                                  | true                                                                                  | Allow anyone from a campus subnet range to SSH to the EC2 instances. |
+| ssh_allow_cidrs                           | \[\]                                  | \[ "123.123.231.321/32" \]                                                            | List of CIDRs (subnet/bits) that should be allowed SSH access to the EC2 instances. Use 'ssh_allow_campus' to include the campus ranges. |
+| app_allow_campus                          | true                                  | true                                                                                  | Allow anyone from a campus subnet range to access the application ports. |
+| app_allow_cidrs                           | \[\]                                  | \[ "123.123.231.321/32" \]                                                            | List of CIDRs (subnet/bits) that should be allowed access to the application ports. Use 'app_allow_campus' to include the campus ranges. |
 | deploy_bucket :exclamation:               |                                       | "deploy-vault.example.illinois.edu-us-east-2"                                         | Name of the bucket that contains the deployment resources (`server.key`, `server.crt`, `ldap-credentials.txt`). |
 | deploy_prefix                             |                                       | "test/"                                                                               | Prefix of the resources inside the deployment bucket. This lets you use the same bucket for multiple deployments. If specified it must not begin with a "/" and must end with a "/". |
 | vault_key_user_roles                      | \[\]                                  | \[ "TechServicesStaff" \]                                                             | List of IAM role names that are given access to the AWS KMS Custom Key protecting some of the resources. People with these roles will be able to read the master keys secret and the CloudWatch Logs. |
@@ -555,6 +558,10 @@ values. :exclamation: means the variable is required.
 | vault_storage_min_wcu                     | "5"                                   | "2"                                                                                   | Minimum number of Write Capacity Units for the DynamoDB table. Do not use a number smaller than 2. |
 | vault_storage_rcu_target                  | "70"                                  | "80"                                                                                  | Target percentage for autoscaling of the RCU. Below this percentage it will remove RCUs and above it will add them. |
 | vault_storage_wcu_target                  | "70"                                  | "80"                                                                                  | Target percentage for autoscaling of the WCU. Below this percentage it will remove WCUs and above it will add them. |
+
+**Note: either both or one of `ssh_allow_campus` and `ssh_allow_cidrs` must be
+specified. Either both or one of `app_allow_campus` and `app_allow_cidrs` must
+be specified.**
 
 Construct a file in `varfiles` with your variable choices. Using the
 examples above we might have a `varfiles/example.tfvars` that looks

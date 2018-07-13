@@ -15,12 +15,22 @@ resource "aws_security_group" "vault_server_lb" {
         from_port = 8200
         to_port = 8200
 
-        cidr_blocks = [
-            "0.0.0.0/0",
-        ]
-        ipv6_cidr_blocks = [
-            "::/0",
-        ]
+        cidr_blocks = [ "${distinct(concat(
+            compact(list(
+                var.app_allow_campus ? "72.36.64.0/18" : "",
+                var.app_allow_campus ? "128.174.0.0/16" : "",
+                var.app_allow_campus ? "130.126.0.0/16" : "",
+                var.app_allow_campus ? "192.17.0.0/16" : "",
+                var.app_allow_campus ? "10.192.0.0/10" : "",
+                var.app_allow_campus ? "172.16.0.0/13" : "",
+                var.app_allow_campus ? "64.22.176.0/20" : "",
+                var.app_allow_campus ? "204.93.0.0/19" : "",
+                var.app_allow_campus ? "141.142.0.0/16" : "",
+                var.app_allow_campus ? "198.17.196.0/25" : "",
+                var.app_allow_campus ? "172.24.0.0/13" : "",
+            )),
+            var.app_allow_cidrs,
+        ))}" ]
     }
 
     egress {
@@ -32,7 +42,7 @@ resource "aws_security_group" "vault_server_lb" {
     }
 
     tags {
-        Name = "${var.project}-server"
+        Name = "${var.project}-lb"
 
         Service = "${var.service}"
         Contact = "${var.contact}"

@@ -6,7 +6,10 @@ environment = "Development"
 project = "sbutler1-vault"
 key_name = "sbutler1@illinois.edu"
 key_file = "~/.ssh/main-work"
-extra_admin_cidrs = [
+ssh_allow_cidrs = [
+    "98.226.112.59/32",
+]
+app_allow_cidrs = [
     "98.226.112.59/32",
 ]
 
