@@ -76,6 +76,7 @@ resource "aws_ecs_cluster" "vault_server" {
 
 resource "aws_ecs_service" "vault_server" {
     depends_on = [
+        "aws_dynamodb_table.vault_storage",
         "null_resource.vault_server_ansible",
         "null_resource.wait_vault_server_task_role",
     ]
