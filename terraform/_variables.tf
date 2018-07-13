@@ -90,7 +90,7 @@ variable "vault_server_admin_groups" {
 variable "vault_server_private_ips" {
     type = "list"
     description = "Private IP's in the public subnets to use for the servers."
-    default = []
+    default = [ "" ]
 }
 
 variable "vault_server_fqdn" {
