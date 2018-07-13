@@ -102,7 +102,7 @@ resource "aws_lb_target_group" "vault_server" {
     }
 }
 resource "aws_lb_target_group_attachment" "vault_server" {
-    count = "${length(var.vault_server_fqdn) == 0 ? 0 : length(aws_instance.vault_server.*.id)}"
+    count = "${length(var.vault_server_fqdn) == 0 ? 0 : length(data.aws_subnet.public.*.id)}"
 
     target_group_arn = "${aws_lb_target_group.vault_server.arn}"
     target_id = "${element(aws_instance.vault_server.*.id, count.index)}"
