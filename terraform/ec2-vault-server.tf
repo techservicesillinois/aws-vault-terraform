@@ -21,6 +21,9 @@ locals {
         project = "${var.project}"
         region = "${data.aws_region.current.name}"
 
+        lb_sg_name = "${aws_security_group.vault_server_lb.name}"
+        lb_sg_id = "${aws_security_group.vault_server_lb.id}"
+
         tls_bucket = "${var.deploy_bucket}"
         tls_crt_object = "${var.deploy_prefix}server.crt"
         tls_key_object = "${var.deploy_prefix}server.key"

@@ -11,6 +11,7 @@
         state: present
       with_items:
         - aws-cli
+        - diffutils
 
     - name: lookup the vault user passwd entry
       command: docker run -i {{ vault_image }} getent passwd vault
@@ -36,6 +37,136 @@
             if [[ ${#_container_id[@]} -gt 0 ]]; then
                 docker kill -s HUP ${_container_id[@]} || :
             fi
+
+    - name: listener update | config path
+      file:
+        path: /etc/opt/uiuc-vault
+        mode: 0755
+        owner: root
+        group: root
+        state: directory
+    - name: listener update | config file
+      copy:
+        dest: /etc/opt/uiuc-vault/listener-update
+        mode: 0644
+        owner: root
+        group: root
+        content: |
+            lb_sg_name={{ lb_sg_name }}
+            lb_sg_id={{ lb_sg_id }}
+            vault_user={{ vault_user }}
+            vault_group={{ vault_group }}
+
+            export AWS_DEFAULT_REGION={{ region }}
+    - name: listener update | script
+      copy:
+        dest: /usr/local/bin/uiuc-vault-listener-update
+        mode: 0755
+        owner: root
+        group: root
+        content: !unsafe |
+            #!/bin/bash
+
+            set -e
+
+            echoerr () { echo "$@" 1>&2; }
+            join_by () { local IFS="$1"; shift; echo "$*"; }
+
+            write_file () {
+                local file="$1"
+
+                local filemod="${2:-0644}"
+                local fileown="${3:-root:root}"
+
+                cat > "$file"
+
+                chmod "$filemod" "$file"
+                chown "$fileown" "$file"
+            }
+
+            finish () {
+                [[ -n $_listener_tmp && -e $_listener_tmp ]] && rm -- "$_listener_tmp"
+            }
+            trap finish EXIT
+
+            [[ -e /etc/opt/uiuc-vault/listener-update ]] && . /etc/opt/uiuc-vault/listener-update
+            if [[ -z $lb_sg_id ]]; then
+                echoerr "ERROR: No lb_sg_id specified"
+                exit 1
+            fi
+            if [[ -z $AWS_DEFAULT_REGION ]]; then
+                echoerr "ERROR: No AWS_DEFAULT_REGION specified"
+                exit 1
+            fi
+
+            : ${vault_user:=root}
+            : ${vault_group:=root}
+
+            # Get the private IPs of the load balancer and sort it for uniqueness
+            _lb_private_ips=($(aws ec2 describe-network-interfaces \
+                --filter \
+                    Name=requester-id,Values=amazon-elb \
+                    Name=group-id,Values=$lb_sg_id \
+                --query 'NetworkInterfaces[].PrivateIpAddresses[].PrivateIpAddress' \
+                --output text
+            ))
+            _lb_private_ips=($(printf "%s\n" "${_lb_private_ips[@]}" | sort -u))
+
+            _listener_tmp=$(mktemp /tmp/vault-server-listener-XXXXXXXXX)
+            if [[ ${#_lb_private_ips[@]} -gt 0 ]]; then
+                write_file "$_listener_tmp" "" "${vault_user}:${vault_group}" <<EOF
+            listener "tcp" {
+                address = "0.0.0.0:8200"
+                cluster_address = "0.0.0.0:8201"
+
+                tls_cert_file = "/vault/config/server.crt"
+                tls_key_file = "/vault/config/server.key"
+
+                x_forwarded_for_authorized_addrs = "$(join_by , "${_lb_private_ips[@]}")"
+                x_forwarded_for_hop_skips = "0"
+                x_forwarded_for_reject_not_authorized = "false"
+                x_forwarded_for_reject_not_present = "false"
+            }
+            EOF
+            else
+                write_file "$_listener_tmp" "" "${vault_user}:${vault_group}" <<EOF
+            listener "tcp" {
+                address = "0.0.0.0:8200"
+                cluster_address = "0.0.0.0:8201"
+
+                tls_cert_file = "/vault/config/server.crt"
+                tls_key_file = "/vault/config/server.key"
+            }
+            EOF
+            fi
+
+            if ! diff -qNb /vault/config/listener.hcl "$_listener_tmp" > /dev/null; then
+                echo "INFO: listener.hcl differs. Replacing and reloading."
+                echo
+
+                if [[ -e /vault/config/listener.hcl ]]; then
+                    echo "OLD listener.hcl:"
+                    cat /vault/config/listener.hcl
+                    echo
+                fi
+
+                echo "NEW listener.hcl:"
+                cat "$_listener_tmp"
+
+                cp "$_listener_tmp" /vault/config/listener.hcl
+                uiuc-vault-server-reload
+            fi
+    - name: listener update | cron job
+      cron:
+        name: uiuc-vault-listener-update
+        cron_file: uiuc-vault
+        user: root
+        job: /usr/local/bin/uiuc-vault-listener-update
+        minute: "*/5"
+        hour: "*"
+        day: "*"
+        month: "*"
+        weekday: "*"
 
     - name: configuration directory
       file:
@@ -108,15 +239,6 @@
                 tls_disable = "true"
             }
 
-            # Public listener
-            listener "tcp" {
-                address = "0.0.0.0:8200"
-                cluster_address = "0.0.0.0:8201"
-
-                tls_cert_file = "/vault/config/server.crt"
-                tls_key_file = "/vault/config/server.key"
-            }
-
             ui = "true"
             pid_file = "/vault/vault.pid"
 
@@ -124,6 +246,21 @@
             cluster_name = "{{ project }}"
             cluster_addr = "https://{{ cluster_addr }}:8201"
       notify: vault | reload
+    - name: listener configuration file
+      copy:
+        dest: /vault/config/listener.hcl
+        mode: 0644
+        owner: "{{ vault_user }}"
+        group: "{{ vault_group }}"
+        force: false
+        content: |
+            listener "tcp" {
+                address = "0.0.0.0:8200"
+                cluster_address = "0.0.0.0:8201"
+
+                tls_cert_file = "/vault/config/server.crt"
+                tls_key_file = "/vault/config/server.key"
+            }
 
     - name: logrotate | configure vault log rotation
       copy:

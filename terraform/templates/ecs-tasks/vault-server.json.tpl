@@ -4,7 +4,7 @@
         "image": "${server_image}",
         "essential": true,
 
-        "command": [ "vault", "server", "-config=/vault/config/config.hcl" ],
+        "command": [ "vault", "server", "-config=/vault/config/config.hcl", "-config=/vault/config/listener.hcl" ],
         "environment": [
             { "name": "AWS_REGION", "value": "${region}" },
             { "name": "AWS_DEFAULT_REGION", "value": "${region}" }

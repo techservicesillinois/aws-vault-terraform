@@ -33,6 +33,14 @@ data "aws_iam_policy_document" "vault_server_instance" {
             "arn:aws:s3:::${var.deploy_bucket}/${var.deploy_prefix}*",
         ]
     }
+
+    statement {
+        effect = "Allow"
+        actions = [
+            "ec2:DescribeNetworkInterfaces",
+        ]
+        resources = [ "*" ]
+    }
 }
 
 data "aws_iam_policy_document" "vault_init_task" {
