@@ -6,6 +6,7 @@ locals {
     ecs_instance_ansible_extravars = {
         project = "${var.project}"
         region = "${data.aws_region.current.name}"
+        contact = "${var.contact}"
 
         sss_bindcreds_bucket = "${var.deploy_bucket}"
         sss_bindcreds_object = "${var.deploy_prefix}ldap-credentials.txt"

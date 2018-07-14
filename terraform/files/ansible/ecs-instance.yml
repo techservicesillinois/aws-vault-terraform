@@ -151,6 +151,37 @@
         group: root
         state: directory
 
+    - name: aliases | root forwarding
+      lineinfile:
+        path: /etc/aliases
+        mode: 0644
+        owner: root
+        group: root
+        regexp: "^root:\\s*\\S+"
+        line: "root: {{ contact }}"
+      notify: newaliases
+
+    - name: cron | HOME variable
+      cronvar:
+        cron_file: uiuc-vault
+        name: HOME
+        value: /
+    - name: cron | MAILTO variable
+      cronvar:
+        cron_file: uiuc-vault
+        name: MAILTO
+        value: root
+    - name: cron | PATH variable
+      cronvar:
+        cron_file: uiuc-vault
+        name: PATH
+        value: /usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin
+    - name: cron | SHELL variable
+      cronvar:
+        cron_file: uiuc-vault
+        name: SHELL
+        value: /bin/bash
+
     - name: ntp | configure
       copy:
         dest: /etc/ntp.conf
@@ -550,6 +581,8 @@
       service:
         name: awslogs
         state: restarted
+    - name: newaliases
+      command: newaliases
     - name: ntp | restart
       service:
         name: ntpd
