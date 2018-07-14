@@ -110,6 +110,10 @@ resource "aws_lb_target_group" "vault_server" {
         Project = "${var.project}"
         NetID = "${var.contact}"
     }
+
+    lifecycle {
+        create_before_destroy = true
+    }
 }
 resource "aws_lb_target_group_attachment" "vault_server" {
     count = "${length(var.vault_server_fqdn) == 0 ? 0 : length(data.aws_subnet.public.*.id)}"
