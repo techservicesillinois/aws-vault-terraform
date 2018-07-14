@@ -117,6 +117,20 @@
                 tls_key_file = "/vault/config/server.key"
             }
 
+            # Load balancer listener
+            listener "tcp" {
+                address = "0.0.0.0:8220"
+                cluster_address = "0.0.0.0:8221"
+
+                tls_cert_file = "/vault/config/server.crt"
+                tls_key_file = "/vault/config/server.key"
+
+                x_forwarded_for_authorized_addrs = "{{ lb_subnet_cidrs }}"
+                x_forwarded_for_hop_skips = "0"
+                x_forwarded_for_reject_not_authorized = "true"
+                x_forwarded_for_reject_not_present = "true"
+            }
+
             ui = "true"
             pid_file = "/vault/vault.pid"
 

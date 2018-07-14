@@ -84,7 +84,7 @@ resource "aws_lb_target_group" "vault_server" {
     name_prefix = "vault-"
     vpc_id = "${data.aws_vpc.public.id}"
 
-    port = 8200
+    port = 8220
     protocol = "HTTPS"
     target_type = "instance"
     slow_start = 30

@@ -21,6 +21,8 @@ locals {
         project = "${var.project}"
         region = "${data.aws_region.current.name}"
 
+        lb_subnet_cidrs = "${join(",", data.aws_subnet.public.*.cidr_block)}"
+
         tls_bucket = "${var.deploy_bucket}"
         tls_crt_object = "${var.deploy_prefix}server.crt"
         tls_key_object = "${var.deploy_prefix}server.key"
@@ -135,6 +137,20 @@ resource "aws_security_group" "vault_server_app" {
         ]
         self = true
     }
+
+    ingress {
+        description = "Vault application (LB traffic)"
+
+        protocol = "tcp"
+        from_port = 8220
+        to_port = 8220
+
+        security_groups = [
+            "${aws_security_group.vault_server_lb.id}",
+        ]
+        self = true
+    }
+
 
     ingress {
         description = "Vault cluster"

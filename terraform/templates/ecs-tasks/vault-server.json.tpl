@@ -27,7 +27,8 @@
 
         "portMappings": [
             { "protocol": "tcp", "containerPort": 8200, "hostPort": 8200 },
-            { "protocol": "tcp", "containerPort": 8201, "hostPort": 8201 }
+            { "protocol": "tcp", "containerPort": 8201, "hostPort": 8201 },
+            { "protocol": "tcp", "containerPort": 8220, "hostPort": 8220 }
         ],
 
         "healthCheck": {
