@@ -148,6 +148,7 @@
             /vault/logs/*.log {
                 daily
                 rotate 30
+                missingok
                 compress
                 delaycompress
                 nocreate
