@@ -138,6 +138,7 @@ uiuc_master_keys () {
 uiuc_vault_init () {
     local _init_result _init_keys
     local _status _result
+    local _ldap_accessor
 
     if [[ -z $UIUC_VAULT_MASTER_SECRET ]]; then
         echoerr "ERROR: no UIUC_VAULT_MASTER_SECRET specified"
@@ -202,6 +203,7 @@ EOF
 
     echoerr "INFO: enabling ldap auth"
     vault auth enable ldap
+    _ldap_accessor="$(vault auth list | jq -r '."ldap/".accessor')"
 
     echoerr "INFO: configuring ldap auth"
     vault write auth/ldap/config \
@@ -216,8 +218,16 @@ EOF
         use_token_groups=true
 
     for group in "$@"; do
-        echo "INFO: adding root policy for $group"
-        vault write "auth/ldap/groups/$group" policies=admin
+        echo "INFO: adding admin policy for $group"
+        _result="$(vault write identity/group \
+            name="$group" \
+            type=external \
+            policies=admin
+        )"
+        vault write identity/group-alias \
+            name="$group" \
+            canonical_id="$(jq -r '.data.id' <<< "$_result")" \
+            mount_accessor="$_ldap_accessor"
     done
 
     echoerr "INFO: enabling aws auth"
