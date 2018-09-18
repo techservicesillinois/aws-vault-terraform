@@ -222,6 +222,10 @@ EOF
 
     echoerr "INFO: enabling aws auth"
     vault auth enable aws
+    vault write auth/aws/config/tidy/identity-whitelist \
+        disable_periodic_tidy=true
+    vault write auth/aws/config/tidy/roletag-blacklist \
+        disable_periodic_tidy=true
 }
 
 # Unseal the vault-server using keys specified as arguments, or

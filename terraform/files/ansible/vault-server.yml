@@ -100,6 +100,7 @@
                 ha_enabled = "true"
                 region = "{{ region }}"
                 table = "{{ vault_storage }}"
+                max_parallel = "{{ vault_storage_max_parallel }}"
             }
 
             # Only for the health check

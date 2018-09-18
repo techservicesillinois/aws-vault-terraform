@@ -29,6 +29,7 @@ locals {
 
         vault_image = "${local.vault_server_image}"
         vault_storage = "${aws_dynamodb_table.vault_storage.name}"
+        vault_storage_max_parallel = "${var.vault_storage_max_rcu * 2}"
     }
 }
 
