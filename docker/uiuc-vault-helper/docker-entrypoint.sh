@@ -213,9 +213,7 @@ EOF
         bindpass="${_ldap_secret[1]@E}" \
         userdn='DC=ad,DC=uillinois,DC=edu' \
         userattr=sAMAccountName \
-        groupdn='DC=ad,DC=uillinois,DC=edu' \
-        groupfilter='(&(objectClass=User)(distinguishedName={{.UserDN}}))' \
-        groupattr=memberOf
+        use_token_groups=true
 
     for group in "$@"; do
         echo "INFO: adding root policy for $group"

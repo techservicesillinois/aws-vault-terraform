@@ -93,8 +93,8 @@ allow full access to these users, and also configure the EC2 instance to allow
 SSH/sudo access. SSH access is given by public/private key authentication so
 configure your admin users in AD with their SSH public keys.
 
-**Not all components are configured to support nested groups. For best results
-make sure that your admin groups have direct members and not nested members.**
+**Some components require you to specify group names exactly the same as
+they are specified in AD, including letter case.**
 
 This terraform also enables AWS authentication which allows you to use AWS users
 and roles to authenticate to Vault.
@@ -545,7 +545,7 @@ values. :exclamation: means the variable is required.
 | deploy_bucket :exclamation:               |                                       | "deploy-vault.example.illinois.edu-us-east-2"                                         | Name of the bucket that contains the deployment resources (`server.key`, `server.crt`, `ldap-credentials.txt`). |
 | deploy_prefix                             |                                       | "test/"                                                                               | Prefix of the resources inside the deployment bucket. This lets you use the same bucket for multiple deployments. If specified it must not begin with a "/" and must end with a "/". |
 | vault_key_user_roles                      | \[\]                                  | \[ "TechServicesStaff" \]                                                             | List of IAM role names that are given access to the AWS KMS Custom Key protecting some of the resources. People with these roles will be able to read the master keys secret and the CloudWatch Logs. |
-| vault_server_admin_groups :exclamation:   |                                       | \[ "Admin Group 1", "Admin Group 2" \]                                                | List AD group names that will be given full access to SSH to the EC2 instance and manage the Vault server. Only direct members of the group will be able to access all resources. |
+| vault_server_admin_groups :exclamation:   |                                       | \[ "Admin Group 1", "Admin Group 2" \]                                                | List AD group names that will be given full access to SSH to the EC2 instance and manage the Vault server. Names specified here must mach AD exactly, including case. |
 | vault_server_private_ips                  | \[\]                                  | \[ "10.224.255.51", "10.224.255.181" \]                                               | List of private IP addresses in the subnet. This is useful if you're carefully managing the private IP space of your VPC. Otherwise, AWS will choose unallocated IPs for you. If you specify this variable you must choose an IP for each subnet in the `public_subnets` list. |
 | vault_server_fqdn                         | ""                                    | "vault.example.illinois.edu"                                                          | Primary FQDN of the vault server, present in the SSL certificate as the CN. |
 | vault_server_public_fqdns :exclamation:   |                                       | \[ "server-a.vault.example.illinois.edu", "server-b.vault.example.illinois.edu" \]    | List of the FQDN of the vault server EC2 instances. You must specify a FQDN here for each subnet in the `public_subnets` variable. |
