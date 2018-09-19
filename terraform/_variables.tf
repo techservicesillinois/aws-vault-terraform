@@ -87,6 +87,17 @@ variable "deploy_prefix" {
     default = ""
 }
 
+variable "log_levels" {
+    type = "map"
+    description = "Map environment names to logging levels. The default is 'info' if nothing is specified."
+    default = {
+        "Development"   = "debug"
+        "development"   = "debug"
+        "Dev"           = "debug"
+        "dev"           = "debug"
+    }
+}
+
 
 # =========================================================
 # Vault Server

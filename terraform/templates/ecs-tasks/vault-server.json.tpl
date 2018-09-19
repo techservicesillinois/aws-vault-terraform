@@ -7,7 +7,8 @@
         "command": [ "vault", "server", "-config=/vault/config/config.hcl" ],
         "environment": [
             { "name": "AWS_REGION", "value": "${region}" },
-            { "name": "AWS_DEFAULT_REGION", "value": "${region}" }
+            { "name": "AWS_DEFAULT_REGION", "value": "${region}" },
+            { "name": "VAULT_LOG_LEVEL", "value": "${log_level}" }
         ],
         "mountPoints": [
             { "sourceVolume": "vault-config", "containerPath": "/vault/config", "readOnly": false },

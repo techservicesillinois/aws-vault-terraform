@@ -51,6 +51,7 @@ data "template_file" "vault_server_containers" {
         project = "${var.project}"
         region = "${data.aws_region.current.name}"
         log_group = "${aws_cloudwatch_log_group.vault_server_containers.name}"
+        log_level = "${lookup(var.log_levels, var.environment, "info")}"
 
         server_image = "${local.vault_server_image}"
         server_mem = "${lookup(
