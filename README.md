@@ -29,6 +29,9 @@ environment.
 * [Terraform Variables](#terraform-variables)
 * [Terraform Deploy](#terraform-deploy)
 * [Post Deployment](#post-deployment)
+    * [Auth: AWS](#post-deployment-auth-aws)
+    * [Auth: Azure](#post-deployment-auth-azure)
+    * [Secret Store: AD](#post-deployment-secret-ad)
 * [Updates](#updates)
     * [EC2 Instances](#updates-ec2)
     * [Vault Server](#updates-vault-server)
@@ -744,6 +747,142 @@ with the SSH private key we created for this terraform.*
 You should also take a moment to find your logs in CloudWatch Logs.
 You can see a lot of information about what Vault is doing in the
 "/$project/ecs-containers/vault-server" log group.
+
+<a id="post-deployment-auth-aws"/>
+
+### Auth: AWS
+
+This terraform configuration will setup all the permissions and roles
+required to authenticate resources in the same account as the vault
+server. For resources in different accounts you will need to mount
+the AWS Auth method at a different path, create an IAM user, and use
+the access_key and secret_key in the [AWS Auth configuration](https://www.vaultproject.io/api/auth/aws/index.html).
+
+<a id="post-deployment-auth-azure"/>
+
+### Auth: Azure
+
+Resources in Azure can use Managed Service Identity (MSI) to
+authenticate to vault, much like how resources in AWS can use IAM Users
+and Roles. You will need to find two pieces of information present in
+your account:
+
+* Subscription ID: this is under "All Services", "Subscriptions". If
+  you have multiple subscriptions then you will need to setup multiple
+  Azure authentication mounts.
+* Tenant ID: this is under "All Services", "Azure Active Directory",
+  "Properties", and it is the value in the "Directory ID" field.
+
+The vault server will need some permissions to read virtual machines
+in your subscription. You could use the "Reader" role but this gives
+many more permissions than required. You should [create a custom role](https://docs.microsoft.com/en-us/azure/role-based-access-control/custom-roles)
+called "Vault Server Reader" with this document:
+
+```
+{
+    "Name": "Vault Server Reader",
+    "IsCustom": true,
+    "Description": "Lets the vault server read the items it needs.",
+    "Actions": [
+        "Microsoft.Compute/virtualMachines/*/read",
+        "Microsoft.Compute/virtualMachineScaleSets/*/read"
+    ],
+    "NotActions": [],
+    "DataActions": [],
+    "NotDataActions": [],
+    "AssignableScopes": [
+         "/subscriptions/${subscription_id}"
+     ]
+}
+```
+
+If you have multiple subscriptions then you can list each one in the
+`AssignableScopes` value.
+
+Register the application that Vault will use to authenticate to Azure:
+
+1. Under "All Services", "Azure Active Directory", "App Registrations".
+2. "New application registration".
+    * Name: something simple and descriptive for your vault server.
+      Example: `mygroup-vault-server`.
+    * Application type: `Web app / API`.
+    * Sign-on URL: this should be the URL to the vault server UI.
+      Example: `https://vault.example.illinois.edu:8200/ui`.
+3. Under "Settings" for the new application:
+    * Properties:
+        * Application ID: this is the `client_id`.
+        * App ID URI: this is the `resource`.
+    * Keys:
+        1. Add a new "Password" key by entering something in the
+           "Description" column, choosing a duration, and then clicking
+           "Save".
+        2. The "Value" column will show the `client_secret` only once,
+           right after clicking "Save". Copy this value for use later.
+4. Under "All Services", "Subscriptions" click on the subscription you
+   use for resources.
+    1. Click "Access control (IAM)".
+    2. Click "Add".
+        * Role: select the "Vault Server Reader" role we created above,
+          or the provided "Reader" role.
+        * Assign access to: `Azure AD user, group, or application`.
+        * Select: type the name of the application you registered. It
+          should appear in the list. Select it.
+    3. Click "Save". You should now see the application with the correct
+       role.
+
+We can now use these values to enable and configure the Azure auth
+method in vault. If you might have multiple, independent subscriptions
+you're connecting the Azure method to then you might want to enable it
+at different paths.
+
+```
+vault auth enable azure
+vault write auth/azure/config \
+    tenant_id=(Tenant ID/Directory ID) \
+    resource=(App ID URI) \
+    client_id=(Application ID) \
+    client_secret=(Password Key Value)
+```
+
+Then you can create roles for Azure MSI to use to authenticate. Some
+parameters that roles can have to limit their use:
+
+* bound_service_principal_ids
+* bound_group_ids
+* bound_location
+* bound_subscription_ids
+* bound_resource_group_names
+* bound_scale_sets
+
+The vault CLI does not have a nice way to authenticate using Azure MSI
+at the moment. The included `uiuc-vault-azure-login` script should help
+make this easier.
+
+<a id="post-deployment-secret-ad"/>
+
+### Secret Store: AD
+
+Vault can be used to automatically store and rotate AD passwords. You
+will need an AD service user with permissions to reset/change the
+password for the users you want to manage in vault. If you are going to
+use multiple AD service users then you should mount the secret store at
+different paths for each.
+
+Notes on the values used to [configure the AD secret store](https://www.vaultproject.io/docs/secrets/ad/index.html):
+
+| Parameter    | Value                                | Notes |
+| ------------ | ------------------------------------ | ----- |
+| url          | ldap://ldap-ad-aws.ldap.illinois.edu | The AWS LDAP load balancer. |
+| starttls     | true                                 | Use StartTLS since SSL is not supported on the AWS load balancer. |
+| insecure_tls | false                                |  |
+| certificate  | @path/to/incommon.pem                | Specify the path to a file that stores only the "[AddTrust External CA Root](http://certmgr.techservices.illinois.edu/technical.htm)". Doing it this way will make sure certificate renewals go smoothly as long as InCommon uses the same root certificate. |
+| binddn       | CN=LDAPAdminUser,OU=...              | The full DN to the AD service user with permissions to reset/change passwords. |
+| bindpass     | SomethingSecret                      | Password for the AD service user. You can use the `/ad/rotate-root` endpoint to rotate this password later if you want, which makes the password only known to vault. |
+| userdn       | DC=ad,DC=uillinois,DC=edu            | It should be safe to specify the directory naming root, but you can also specify the DN to some other OU to further limit which users can have their passwords managed. |
+
+When creating roles for the AD secret store the `service_account_name`
+must be the `userPrincipalName` of the account whose password will be
+managed. For example, `Vault-Example1@ad.uillinois.edu`.
 
 
 <a id="updates"/>
