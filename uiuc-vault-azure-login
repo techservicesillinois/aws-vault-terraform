@@ -1,0 +1,52 @@
+#!/bin/bash
+
+set -e
+
+: ${UIUC_VAULT_AZURE_CONF:=/etc/opt/uiuc-vault/azure}
+[[ -e $UIUC_VAULT_AZURE_CONF ]] && . "$UIUC_VAULT_AZURE_CONF"
+
+if [[ -z $VAULT_AZURE_RESOURCE ]]; then
+	echo "VAULT_AZURE_RESOURCE environment variable not specified"
+	exit 1
+fi
+if [[ -z $VAULT_ADDR ]]; then
+	echo "VAULT_ADDR environment variable not specified"
+	exit 1
+fi
+
+: ${AZURE_API_VERSION:=2018-02-01}
+
+azure_metadata () { curl --silent --fail --retry 3 -H Metadata:true "http://169.254.169.254/metadata/instance/${1}?api-version=${AZURE_API_VERSION}&format=text"; }
+azure_token () {
+	local _result="$(curl --silent --fail --retry 3 -H Metadata:true -G \
+		--data-urlencode "api-version=${AZURE_API_VERSION}" \
+		--data-urlencode "resource=${VAULT_AZURE_RESOURCE}" \
+		'http://169.254.169.254/metadata/identity/oauth2/token' | jq -r '.access_token')"
+	[[ -z $_result || $_result = 'null' ]] && return 2
+
+	echo $_result
+}
+
+role="$1"
+if [[ -z $role ]]; then
+	echo "Role name must be specified as the first argument"
+	exit 1
+fi
+
+vm_name="$(azure_metadata compute/name)"
+vmss_name="$(azure_metadata compute/vmScaleSetName)"
+subscription_id="$(azure_metadata compute/subscriptionId)"
+resource_group_name="$(azure_metadata compute/resourceGroupName)"
+jwt="$(azure_token)"
+
+vault_token="$(VAULT_FORMAT=json vault write auth/azure/login jwt="$jwt" \
+	role="$role" \
+	subscription_id="$subscription_id" \
+	resource_group_name="$resource_group_name" \
+	vm_name="$vm_name" \
+	vmss_name="$vmss_name" | jq -r '.auth.client_token')"
+
+if [[ -n $vault_token && $vault_token != 'null' ]]; then
+	echo "$vault_token" > ~/.vault-token
+	vault token lookup
+fi
