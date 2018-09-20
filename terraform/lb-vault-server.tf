@@ -33,6 +33,31 @@ resource "aws_security_group" "vault_server_lb" {
         ))}" ]
     }
 
+    ingress {
+        description = "Vault application"
+
+        protocol = "tcp"
+        from_port = 443
+        to_port = 443
+
+        cidr_blocks = [ "${distinct(concat(
+            compact(list(
+                var.app_allow_campus ? "72.36.64.0/18" : "",
+                var.app_allow_campus ? "128.174.0.0/16" : "",
+                var.app_allow_campus ? "130.126.0.0/16" : "",
+                var.app_allow_campus ? "192.17.0.0/16" : "",
+                var.app_allow_campus ? "10.192.0.0/10" : "",
+                var.app_allow_campus ? "172.16.0.0/13" : "",
+                var.app_allow_campus ? "64.22.176.0/20" : "",
+                var.app_allow_campus ? "204.93.0.0/19" : "",
+                var.app_allow_campus ? "141.142.0.0/16" : "",
+                var.app_allow_campus ? "198.17.196.0/25" : "",
+                var.app_allow_campus ? "172.24.0.0/13" : "",
+            )),
+            var.app_allow_cidrs,
+        ))}" ]
+    }
+
     egress {
         protocol = "-1"
         from_port = 0
@@ -128,6 +153,22 @@ resource "aws_lb_listener" "vault_server" {
     load_balancer_arn = "${aws_lb.vault_server.arn}"
 
     port = 8200
+    protocol = "HTTPS"
+    ssl_policy = "ELBSecurityPolicy-FS-2018-06"
+    certificate_arn = "${data.aws_acm_certificate.vault_server.arn}"
+
+    default_action {
+        type = "forward"
+        target_group_arn = "${aws_lb_target_group.vault_server.arn}"
+    }
+}
+
+resource "aws_lb_listener" "vault_server_443" {
+    count = "${length(var.vault_server_fqdn) == 0 ? 0 : 1}"
+
+    load_balancer_arn = "${aws_lb.vault_server.arn}"
+
+    port = 443
     protocol = "HTTPS"
     ssl_policy = "ELBSecurityPolicy-FS-2018-06"
     certificate_arn = "${data.aws_acm_certificate.vault_server.arn}"
