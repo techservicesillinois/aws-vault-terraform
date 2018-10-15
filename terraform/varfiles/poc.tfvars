@@ -32,5 +32,5 @@ vault_server_private_ips = [
     "10.224.255.181",
 ]
 
-vault_storage_min_rcu = 1
-vault_storage_min_wcu = 1
+vault_storage_dyndb_min_rcu = 1
+vault_storage_dyndb_min_wcu = 1

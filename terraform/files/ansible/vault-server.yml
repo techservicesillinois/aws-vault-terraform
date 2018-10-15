@@ -89,7 +89,7 @@
         owner: "{{ vault_user }}"
         group: "{{ vault_group }}"
 
-    - name: configuration file
+    - name: configuration file (dynamodb)
       copy:
         dest: /vault/config/config.hcl
         mode: 0644
@@ -99,8 +99,8 @@
             storage "dynamodb" {
                 ha_enabled = "true"
                 region = "{{ region }}"
-                table = "{{ vault_storage }}"
-                max_parallel = "{{ vault_storage_max_parallel }}"
+                table = "{{ vault_storage_dyndb_name }}"
+                max_parallel = "{{ vault_storage_dyndb_max_parallel }}"
             }
 
             # Only for the health check
@@ -138,6 +138,7 @@
             api_addr = "https://{{ api_addr }}:8200"
             cluster_name = "{{ project }}"
             cluster_addr = "https://{{ cluster_addr }}:8201"
+      when: vault_storage == "dynamodb"
 
     - name: logrotate | configure vault log rotation
       copy:

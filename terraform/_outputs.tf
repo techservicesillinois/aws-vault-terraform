@@ -14,6 +14,6 @@ output "vault_server_public_ips" {
     value = "${aws_eip.vault_server.*.public_ip}"
 }
 
-output "vault_storage_name" {
-    value = "${aws_dynamodb_table.vault_storage.name}"
+output "vault_storage_dyndb_name" {
+    value = "${local.vault_storage_dyndb_name}"
 }

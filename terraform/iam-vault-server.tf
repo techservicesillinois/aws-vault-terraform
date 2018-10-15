@@ -87,16 +87,6 @@ data "aws_iam_policy_document" "vault_server_task" {
     }
 
     statement {
-        effect = "Allow"
-        actions = [
-            "dynamodb:*",
-        ]
-        resources = [
-            "${aws_dynamodb_table.vault_storage.arn}",
-        ]
-    }
-
-    statement {
         effect = "Allow",
         actions = [
             "kms:Decrypt",
@@ -115,6 +105,18 @@ data "aws_iam_policy_document" "vault_server_task" {
         ]
         resources = [
             "${aws_secretsmanager_secret.vault_master.arn}",
+        ]
+    }
+}
+
+data "aws_iam_policy_document" "vault_server_dyndb_task" {
+    statement {
+        effect = "Allow"
+        actions = [
+            "dynamodb:*",
+        ]
+        resources = [
+            "${local.vault_storage_dyndb_arn}",
         ]
     }
 }
@@ -151,9 +153,22 @@ resource "aws_iam_policy" "vault_init_task" {
 resource "aws_iam_policy" "vault_server_task" {
     name_prefix = "${var.project}-task-"
     path = "/${var.project}/"
-    description = "Allow ${var.project} vault server tasks to access DynamoDB and the master Secret"
+    description = "Allow ${var.project} vault server tasks to access the master Secret and EC2 information"
 
     policy = "${data.aws_iam_policy_document.vault_server_task.json}"
+
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+resource "aws_iam_policy" "vault_server_dyndb_task" {
+    count = "${var.vault_storage == "dynamodb" ? 1 : 0}"
+
+    name_prefix = "${var.project}-task-"
+    path = "/${var.project}/"
+    description = "Allow ${var.project} vault server tasks to access DynamoDB"
+
+    policy = "${data.aws_iam_policy_document.vault_server_dyndb_task.json}"
 
     lifecycle {
         create_before_destroy = true
@@ -264,12 +279,23 @@ resource "aws_iam_role_policy_attachment" "vault_server_task" {
         create_before_destroy = true
     }
 }
+resource "aws_iam_role_policy_attachment" "vault_server_dyndb_task" {
+    count = "${var.vault_storage == "dynamodb" ? 1 : 0}"
+
+    role = "${aws_iam_role.vault_server_task.name}"
+    policy_arn = "${element(aws_iam_policy.vault_server_dyndb_task.*.arn, count.index)}"
+
+    lifecycle {
+        create_before_destroy = true
+    }
+}
 
 # It can take a bit for policies to attached. Depend on this role to make sure
 # all policies are attached and available.
 resource "null_resource" "wait_vault_server_task_role" {
     depends_on = [
         "aws_iam_role_policy_attachment.vault_server_task",
+        "aws_iam_role_policy_attachment.vault_server_dyndb_task",
     ]
 
     provisioner "local-exec" {

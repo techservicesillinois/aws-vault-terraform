@@ -28,8 +28,10 @@ locals {
         tls_key_object = "${var.deploy_prefix}server.key"
 
         vault_image = "${local.vault_server_image}"
-        vault_storage = "${aws_dynamodb_table.vault_storage.name}"
-        vault_storage_max_parallel = "${var.vault_storage_max_rcu * 2}"
+        vault_storage = "${var.vault_storage}"
+
+        vault_storage_dyndb_name = "${local.vault_storage_dyndb_name}"
+        vault_storage_dyndb_max_parallel = "${var.vault_storage_dyndb_max_rcu * 2}"
     }
 }
 

@@ -149,42 +149,48 @@ variable "vault_helper_image" {
     default = "sbutler/uiuc-vault-helper:latest"
 }
 
+variable "vault_storage" {
+    type = "string"
+    description = "Type of storage to use for vault server (dynamodb, mysql)."
+    default = "dynamodb"
+}
+
 
 # =========================================================
-# Vaul Storage
+# Vaul Storage: DynamoDB
 # =========================================================
 
-variable "vault_storage_max_rcu" {
+variable "vault_storage_dyndb_max_rcu" {
     type = "string"
     description = "Vault storage maximum RCU."
     default = "20"
 }
 
-variable "vault_storage_min_rcu" {
+variable "vault_storage_dyndb_min_rcu" {
     type = "string"
     description = "Vault storage minimum RCU."
     default = "5"
 }
 
-variable "vault_storage_max_wcu" {
+variable "vault_storage_dyndb_max_wcu" {
     type = "string"
     description = "Vault storage maximum WCU."
     default = "20"
 }
 
-variable "vault_storage_min_wcu" {
+variable "vault_storage_dyndb_min_wcu" {
     type = "string"
     description = "Vault storage minimum WCU."
     default = "5"
 }
 
-variable "vault_storage_rcu_target" {
+variable "vault_storage_dyndb_rcu_target" {
     type = "string"
     description = "Vault storage target RCU utilization percentage."
     default = "70"
 }
 
-variable "vault_storage_wcu_target" {
+variable "vault_storage_dyndb_wcu_target" {
     type = "string"
     description = "Vault storage target WCU utilization percentage."
     default = "70"
