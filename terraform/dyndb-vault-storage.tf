@@ -3,8 +3,9 @@
 # ===================================================================
 
 locals {
-    vault_storage_dyndb_name = "${var.vault_storage == "dynamodb" ? join("", aws_dynamodb_table.vault_storage.*.name) : ""}"
-    vault_storage_dyndb_arn = "${var.vault_storage == "dynamodb" ? join("", aws_dynamodb_table.vault_storage.*.arn) : ""}"
+    vault_storage_dyndb = "${contains(var.vault_storage, "dynamodb")}"
+    vault_storage_dyndb_name = "${join("", aws_dynamodb_table.vault_storage.*.name)}"
+    vault_storage_dyndb_arn = "${join("", aws_dynamodb_table.vault_storage.*.arn)}"
 }
 
 
@@ -14,7 +15,7 @@ locals {
 
 # Create a DynamoDB table and scaling policies to store vault data
 resource "aws_dynamodb_table" "vault_storage" {
-    count = "${var.vault_storage == "dynamodb" ? 1 : 0}"
+    count = "${local.vault_storage_dyndb ? 1 : 0}"
 
     name = "${var.project}-storage"
     read_capacity = "${var.vault_storage_dyndb_min_rcu}"
@@ -64,7 +65,7 @@ resource "aws_dynamodb_table" "vault_storage" {
 
 # Autoscale the RCU
 resource "aws_appautoscaling_target" "vault_storage_dyndb_rcu" {
-    count = "${var.vault_storage == "dynamodb" ? 1 : 0}"
+    count = "${local.vault_storage_dyndb ? 1 : 0}"
 
     service_namespace = "dynamodb"
     resource_id = "table/${element(aws_dynamodb_table.vault_storage.*.name, count.index)}"
@@ -76,7 +77,7 @@ resource "aws_appautoscaling_target" "vault_storage_dyndb_rcu" {
     role_arn = "${data.aws_iam_role.appautoscaling_dynamodb.arn}"
 }
 resource "aws_appautoscaling_policy" "vault_storage_dyndb_rcu" {
-    count = "${var.vault_storage == "dynamodb" ? 1 : 0}"
+    count = "${local.vault_storage_dyndb ? 1 : 0}"
 
     name = "DynamoDBReadCapacityUtilization:table/${element(aws_dynamodb_table.vault_storage.*.name, count.index)}"
 
@@ -97,7 +98,7 @@ resource "aws_appautoscaling_policy" "vault_storage_dyndb_rcu" {
 
 # Autoscale the WCU
 resource "aws_appautoscaling_target" "vault_storage_dyndb_wcu" {
-    count = "${var.vault_storage == "dynamodb" ? 1 : 0}"
+    count = "${local.vault_storage_dyndb ? 1 : 0}"
 
     service_namespace = "dynamodb"
     resource_id = "table/${element(aws_dynamodb_table.vault_storage.*.name, count.index)}"
@@ -109,7 +110,7 @@ resource "aws_appautoscaling_target" "vault_storage_dyndb_wcu" {
     role_arn = "${data.aws_iam_role.appautoscaling_dynamodb.arn}"
 }
 resource "aws_appautoscaling_policy" "vault_storage_dyndb_wcu" {
-    count = "${var.vault_storage == "dynamodb" ? 1 : 0}"
+    count = "${local.vault_storage_dyndb ? 1 : 0}"
 
     name = "DynamoDBWriteCapacityUtilization:table/${element(aws_dynamodb_table.vault_storage.*.name, count.index)}"
 

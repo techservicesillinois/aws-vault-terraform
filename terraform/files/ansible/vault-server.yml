@@ -138,7 +138,7 @@
             api_addr = "https://{{ api_addr }}:8200"
             cluster_name = "{{ project }}"
             cluster_addr = "https://{{ cluster_addr }}:8201"
-      when: vault_storage == "dynamodb"
+      when: '"dynamodb" in vault_storage'
 
     - name: logrotate | configure vault log rotation
       copy:

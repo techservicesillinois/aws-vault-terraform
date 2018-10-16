@@ -162,7 +162,7 @@ resource "aws_iam_policy" "vault_server_task" {
     }
 }
 resource "aws_iam_policy" "vault_server_dyndb_task" {
-    count = "${var.vault_storage == "dynamodb" ? 1 : 0}"
+    count = "${local.vault_storage_dyndb ? 1 : 0}"
 
     name_prefix = "${var.project}-task-"
     path = "/${var.project}/"
@@ -280,7 +280,7 @@ resource "aws_iam_role_policy_attachment" "vault_server_task" {
     }
 }
 resource "aws_iam_role_policy_attachment" "vault_server_dyndb_task" {
-    count = "${var.vault_storage == "dynamodb" ? 1 : 0}"
+    count = "${local.vault_storage_dyndb ? 1 : 0}"
 
     role = "${aws_iam_role.vault_server_task.name}"
     policy_arn = "${element(aws_iam_policy.vault_server_dyndb_task.*.arn, count.index)}"
