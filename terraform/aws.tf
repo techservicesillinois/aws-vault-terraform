@@ -55,5 +55,9 @@ data "aws_iam_role" "task_execution" {
     name = "ecsTaskExecutionRole"
 }
 
+# https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.OS.html
+data "aws_iam_role" "rds_monitoring" {
+    name = "rds-monitoring-role"
+}
 
 data "aws_region" "current" {}

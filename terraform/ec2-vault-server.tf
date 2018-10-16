@@ -30,8 +30,17 @@ locals {
         vault_image = "${local.vault_server_image}"
         vault_storage = "${var.vault_storage}"
 
-        vault_storage_dyndb_name = "${local.vault_storage_dyndb_name}"
-        vault_storage_dyndb_max_parallel = "${var.vault_storage_dyndb_max_rcu * 2}"
+        dyndb_name = "${local.vault_storage_dyndb_name}"
+        dyndb_max_parallel = "${var.vault_storage_dyndb_max_rcu * 2}"
+
+        mariadb_host = "${local.vault_storage_mariadb_address}"
+        mariadb_port = "${local.vault_storage_mariadb_port}"
+        mariadb_admin_user = "${var.vault_storage_mariadb_admin_username}"
+        mariadb_admin_pass = "${random_string.vault_storage_mariadb_admin_password.result}"
+        mariadb_app_db = "vault-server"
+        mariadb_app_user = "${var.vault_storage_mariadb_app_username}"
+        mariadb_app_pass = "${random_string.vault_storage_mariadb_app_password.result}"
+        mariadb_max_parallel = 128
     }
 }
 

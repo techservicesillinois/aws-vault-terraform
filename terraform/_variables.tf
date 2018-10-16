@@ -54,6 +54,11 @@ variable "public_subnets" {
     description = "Public subnet names for resources publically accessible."
 }
 
+variable "private_subnets" {
+    type = "list"
+    description = "Private subnet names for resources not publically accessible."
+}
+
 variable "ssh_allow_campus" {
     type = "string"
     description = "Allow the campus subnet ranges to SSH to the Vault server instances."
@@ -194,6 +199,65 @@ variable "vault_storage_dyndb_wcu_target" {
     type = "string"
     description = "Vault storage target WCU utilization percentage."
     default = "70"
+}
+
+
+# =========================================================
+# Vaul Storage: MariaDB
+# =========================================================
+
+variable "vault_storage_mariadb_version" {
+    type = "string"
+    description = "MariaDB version, only major and minor components specified."
+    default = "10.2"
+}
+
+variable "vault_storage_mariadb_class" {
+    type = "string"
+    description = "MariaDB instance class for RDS."
+    default = "db.t2.small"
+}
+
+variable "vault_storage_mariadb_size" {
+    type = "string"
+    description = "MariaDB storage volume size, in GB. This should be at least 5."
+    default = "5"
+}
+
+variable "vault_storage_mariadb_admin_username" {
+    type = "string"
+    description = "MariaDB administartor username. The password will be randomly generated."
+    default = "vault_admin"
+}
+
+variable "vault_storage_mariadb_app_username" {
+    type = "string"
+    description = "MariaDB vault application username. The password will be randomly generated."
+    default = "vault_server"
+}
+
+variable "vault_storage_mariadb_backup_retention" {
+    type = "string"
+    description = "MariaDB backup retention, in days."
+    default = "30"
+}
+
+variable "vault_storage_mariadb_backup_window" {
+    type = "string"
+    description = "MariaDB backup window as HH:MM-HH:MM in UTC time. This must not overlap the maintenance window."
+    default = "09:00-10:00"
+}
+
+variable "vault_storage_mariadb_maintenance_window" {
+    type = "string"
+    description = "MariaDB maintenance window as DDD:HH:MM-DDDD:HH:MM in UTC time. This must not overlap the backup window."
+    default = "Sun:07:00-Sun:08:00"
+}
+
+variable "vault_storage_mariadb_monitoring" {
+    type = "string"
+    description = "Enable enhanced monitoring of the database, at 1min intervals."
+    default = "0"
 }
 
 

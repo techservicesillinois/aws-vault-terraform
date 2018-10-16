@@ -17,3 +17,7 @@ output "vault_server_public_ips" {
 output "vault_storage_dyndb_name" {
     value = "${local.vault_storage_dyndb_name}"
 }
+
+output "vault_storage_mariadb_address" {
+    value = "${local.vault_storage_mariadb_address}"
+}

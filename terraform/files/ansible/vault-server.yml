@@ -88,57 +88,146 @@
         mode: 0644
         owner: "{{ vault_user }}"
         group: "{{ vault_group }}"
-
-    - name: configuration file (dynamodb)
+    - name: AWS RDS CA file
       copy:
-        dest: /vault/config/config.hcl
+        src: ../rds.pem
+        dest: /vault/config/rds-ca.crt
         mode: 0644
         owner: "{{ vault_user }}"
         group: "{{ vault_group }}"
-        content: |
-            storage "dynamodb" {
-                ha_enabled = "true"
-                region = "{{ region }}"
-                table = "{{ vault_storage_dyndb_name }}"
-                max_parallel = "{{ vault_storage_dyndb_max_parallel }}"
-            }
 
-            # Only for the health check
-            listener "tcp" {
-                address = "127.0.0.1:8100"
-                tls_disable = "true"
-            }
+    - name: dynamodb configuration
+      block:
+        - copy:
+            dest: /vault/config/config.hcl
+            mode: 0644
+            owner: "{{ vault_user }}"
+            group: "{{ vault_group }}"
+            content: |
+                storage "dynamodb" {
+                    ha_enabled = "true"
+                    region = "{{ region }}"
+                    table = "{{ dyndb_name }}"
+                    max_parallel = "{{ dyndb_max_parallel }}"
+                }
 
-            # Public listener
-            listener "tcp" {
-                address = "0.0.0.0:8200"
-                cluster_address = "0.0.0.0:8201"
+                # Only for the health check
+                listener "tcp" {
+                    address = "127.0.0.1:8100"
+                    tls_disable = "true"
+                }
 
-                tls_cert_file = "/vault/config/server.crt"
-                tls_key_file = "/vault/config/server.key"
-            }
+                # Public listener
+                listener "tcp" {
+                    address = "0.0.0.0:8200"
+                    cluster_address = "0.0.0.0:8201"
 
-            # Load balancer listener
-            listener "tcp" {
-                address = "0.0.0.0:8220"
-                cluster_address = "0.0.0.0:8221"
+                    tls_cert_file = "/vault/config/server.crt"
+                    tls_key_file = "/vault/config/server.key"
+                }
 
-                tls_cert_file = "/vault/config/server.crt"
-                tls_key_file = "/vault/config/server.key"
+                # Load balancer listener
+                listener "tcp" {
+                    address = "0.0.0.0:8220"
+                    cluster_address = "0.0.0.0:8221"
 
-                x_forwarded_for_authorized_addrs = "{{ lb_subnet_cidrs }}"
-                x_forwarded_for_hop_skips = "0"
-                x_forwarded_for_reject_not_authorized = "true"
-                x_forwarded_for_reject_not_present = "true"
-            }
+                    tls_cert_file = "/vault/config/server.crt"
+                    tls_key_file = "/vault/config/server.key"
 
-            ui = "true"
-            pid_file = "/vault/vault.pid"
+                    x_forwarded_for_authorized_addrs = "{{ lb_subnet_cidrs }}"
+                    x_forwarded_for_hop_skips = "0"
+                    x_forwarded_for_reject_not_authorized = "true"
+                    x_forwarded_for_reject_not_present = "true"
+                }
 
-            api_addr = "https://{{ api_addr }}:8200"
-            cluster_name = "{{ project }}"
-            cluster_addr = "https://{{ cluster_addr }}:8201"
-      when: '"dynamodb" in vault_storage'
+                ui = "true"
+                pid_file = "/vault/vault.pid"
+
+                api_addr = "https://{{ api_addr }}:8200"
+                cluster_name = "{{ project }}"
+                cluster_addr = "https://{{ cluster_addr }}:8201"
+      when: vault_storage[0] == "dynamodb"
+
+    - name: mariadb configuration
+      block:
+        - yum:
+            name: MySQL-python27
+            state: present
+        - mysql_db:
+            login_host: "{{ mariadb_host }}"
+            login_port: "{{ mariadb_port }}"
+            login_user: "{{ mariadb_admin_user }}"
+            login_password: "{{ mariadb_admin_pass }}"
+            ssl_ca: /vault/config/rds-ca.crt
+            name: "{{ mariadb_app_db }}"
+            state: present
+          when: mariadb_admin_user and mariadb_admin_pass
+        - mysql_user:
+            login_host: "{{ mariadb_host }}"
+            login_port: "{{ mariadb_port }}"
+            login_user: "{{ mariadb_admin_user }}"
+            login_password: "{{ mariadb_admin_pass }}"
+            ssl_ca: /vault/config/rds-ca.crt
+            name: "{{ mariadb_app_user }}"
+            host: "%"
+            password: "{{ mariadb_app_pass }}"
+            priv: "{{ mariadb_app_db }}.*:ALL"
+            state: present
+          when: mariadb_admin_user and mariadb_admin_pass
+        - copy:
+            dest: /vault/config/config.hcl
+            mode: 0644
+            owner: "{{ vault_user }}"
+            group: "{{ vault_group }}"
+            content: |
+                storage "mysql" {
+                    ha_enabled = "true"
+                    address = "{{ mariadb_host }}:{{ mariadb_port }}"
+                    database = "vault"
+                    tls_ca_file = "/vault/config/rds-ca.crt"
+                    max_parallel = "{{ mariadb_max_parallel }}"
+
+                    username = "{{ mariadb_app_user }}"
+                    password = "{{ mariadb_app_pass }}"
+                }
+
+                # Only for the health check
+                listener "tcp" {
+                    address = "127.0.0.1:8100"
+                    tls_disable = "true"
+                }
+
+                # Public listener
+                listener "tcp" {
+                    address = "0.0.0.0:8200"
+                    cluster_address = "0.0.0.0:8201"
+
+                    tls_cert_file = "/vault/config/server.crt"
+                    tls_key_file = "/vault/config/server.key"
+                }
+
+                # Load balancer listener
+                listener "tcp" {
+                    address = "0.0.0.0:8220"
+                    cluster_address = "0.0.0.0:8221"
+
+                    tls_cert_file = "/vault/config/server.crt"
+                    tls_key_file = "/vault/config/server.key"
+
+                    x_forwarded_for_authorized_addrs = "{{ lb_subnet_cidrs }}"
+                    x_forwarded_for_hop_skips = "0"
+                    x_forwarded_for_reject_not_authorized = "true"
+                    x_forwarded_for_reject_not_present = "true"
+                }
+
+                ui = "true"
+                pid_file = "/vault/vault.pid"
+
+                api_addr = "https://{{ api_addr }}:8200"
+                cluster_name = "{{ project }}"
+                cluster_addr = "https://{{ cluster_addr }}:8201"
+          when: vault_storage[0] == "mariadb"
+      when: '"mariadb" in vault_storage'
 
     - name: logrotate | configure vault log rotation
       copy:
