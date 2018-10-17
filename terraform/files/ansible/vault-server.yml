@@ -183,7 +183,7 @@
                 storage "mysql" {
                     ha_enabled = "true"
                     address = "{{ mariadb_host }}:{{ mariadb_port }}"
-                    database = "vault"
+                    database = "{{ mariadb_app_db }}"
                     tls_ca_file = "/vault/config/rds-ca.crt"
                     max_parallel = "{{ mariadb_max_parallel }}"
 
