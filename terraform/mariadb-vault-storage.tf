@@ -135,8 +135,8 @@ resource "aws_db_instance" "vault_storage_mariadb" {
     backup_window = "${var.vault_storage_mariadb_backup_window}"
     maintenance_window = "${var.vault_storage_mariadb_maintenance_window}"
 
-    monitoring_role_arn = "${var.vault_storage_mariadb_monitoring == 0 ? "" : data.aws_iam_role.rds_monitoring.arn}"
-    monitoring_interval = "${var.vault_storage_mariadb_monitoring == 0 ? 0 : 60}"
+    monitoring_role_arn = "${var.enhanced_monitoring == 0 ? "" : data.aws_iam_role.rds_monitoring.arn}"
+    monitoring_interval = "${var.enhanced_monitoring == 0 ? 0 : 60}"
 
     copy_tags_to_snapshot = true
     deletion_protection = true

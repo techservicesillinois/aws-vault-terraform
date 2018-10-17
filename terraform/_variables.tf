@@ -260,12 +260,6 @@ variable "vault_storage_mariadb_maintenance_window" {
     default = "Sun:07:00-Sun:08:00"
 }
 
-variable "vault_storage_mariadb_monitoring" {
-    type = "string"
-    description = "Enable enhanced monitoring of the database, at 1min intervals."
-    default = "0"
-}
-
 
 # =========================================================
 # Docker generic maps
