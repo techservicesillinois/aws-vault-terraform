@@ -40,7 +40,7 @@ locals {
         mariadb_app_db = "vault-server"
         mariadb_app_user = "${var.vault_storage_mariadb_app_username}"
         mariadb_app_pass = "${random_string.vault_storage_mariadb_app_password.result}"
-        mariadb_max_parallel = 128
+        mariadb_max_parallel = "${var.vault_storage_mariadb_max_parallel}"
     }
 }
 

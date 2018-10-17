@@ -171,9 +171,20 @@
             name: "{{ mariadb_app_user }}"
             host: "%"
             password: "{{ mariadb_app_pass }}"
-            priv: "{{ mariadb_app_db }}.*:ALL"
+            priv: "{{ mariadb_app_db }}.*:ALL/mysql.time_zone:SELECT"
             state: present
           when: mariadb_admin_user and mariadb_admin_pass
+        - mysql_variables:
+            login_host: "{{ mariadb_host }}"
+            login_port: "{{ mariadb_port }}"
+            login_user: "{{ mariadb_app_user }}"
+            login_password: "{{ mariadb_app_pass }}"
+            ssl_ca: /vault/config/rds-ca.crt
+            variable: max_connections
+          register: mariadb_max_connections_result
+        - set_fact:
+            mariadb_max_parallel_override: "{{ (mariadb_max_connections_result.msg|int * 0.90)|round(method='floor')|int }}"
+          when: mariadb_max_parallel|int <= 0
         - copy:
             dest: /vault/config/config.hcl
             mode: 0644
@@ -185,7 +196,7 @@
                     address = "{{ mariadb_host }}:{{ mariadb_port }}"
                     database = "{{ mariadb_app_db }}"
                     tls_ca_file = "/vault/config/rds-ca.crt"
-                    max_parallel = "{{ mariadb_max_parallel }}"
+                    max_parallel = "{{ mariadb_max_parallel_override|default(mariadb_max_parallel) }}"
 
                     username = "{{ mariadb_app_user }}"
                     password = "{{ mariadb_app_pass }}"

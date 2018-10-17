@@ -224,6 +224,12 @@ variable "vault_storage_mariadb_size" {
     default = "5"
 }
 
+variable "vault_storage_mariadb_max_parallel" {
+    type = "string"
+    description = "Maximum number of parallel operations for vault to perform. If not specified then 90% of the database max connections is used."
+    default = "0"
+}
+
 variable "vault_storage_mariadb_admin_username" {
     type = "string"
     description = "MariaDB administartor username. The password will be randomly generated."
