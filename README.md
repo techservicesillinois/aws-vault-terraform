@@ -27,6 +27,12 @@ environment.
     * [SSL Certificate Files and AWS Certificate Manager](#setup-ssl)
     * [LDAP Authentication Bind](#setup-ldap)
 * [Terraform Variables](#terraform-variables)
+    * [Cloud First](#terraform-variables-cloudfirst)
+    * [General](#terraform-variables-general)
+    * [Vault Server](#terraform-variables-vaultserver)
+    * [Vault Storage: DynamoDB](#terraform-variables-vaultstoragedyndb)
+    * [Vault Storage: MariaDB](#terraform-variables-vaultstoragemariadb)
+    * [Example](#terraform-variables-example)
 * [Terraform Deploy](#terraform-deploy)
 * [Post Deployment](#post-deployment)
     * [Auth: AWS](#post-deployment-auth-aws)
@@ -530,6 +536,10 @@ varfiles.
 The examples for the variables will use the Tech Services Sandbox account
 values. :exclamation: means the variable is required.
 
+<a id="terraform-variables-cloudfirst"/>
+
+### Cloud First
+
 | Name                                      | Default                               | Example                                                                               | Description |
 | ----------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------- | ----------- |
 | service :exclamation:                     |                                       | "Vault Example"                                                                       | The service name. For Tech Services this would be the name in the Service Catalog. This is available as a tag on resources. |
@@ -537,10 +547,19 @@ values. :exclamation: means the variable is required.
 | data_classification :exclamation:         |                                       | "Sensitive"                                                                           | The Illini Secure data classification. This should probably be "Sensitive" or "High Risk". This is available as a tag on storage resources. |
 | environment                               | ""                                    | "Test"                                                                                | The environment: Development, Test, Staging, Production. Setting "Production" lengthens some of the retention periods of resources. This is available as a tag on resources. |
 | project :exclamation:                     |                                       | "vault-exmp"                                                                          | Short, simple project name. Some resources have a "name" or "name prefix" and this will be used for that. |
+
+
+<a id="terraform-variables-general"/>
+
+### General
+
+| Name                                      | Default                               | Example                                                                               | Description |
+| ----------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------- | ----------- |
 | key_name :exclamation:                    |                                       | "Vault Example"                                                                       | Name of the EC2 Key Pair created earlier. |
 | key_file :exclamation:                    |                                       | "~/.ssh/vault"                                                                        | Path to the SSH private key file on your local machine. |
-| enhanced_monitoring                       | "0"                                   | "1"                                                                                   | Enable enhanced monitoring on EC2 instances created. |
+| enhanced_monitoring                       | "0"                                   | "1"                                                                                   | Enable enhanced monitoring on EC2 and RDS instances created. |
 | public_subnets :exclamation:              |                                       | \[ "techsvcsandbox-public1-a-net", "techsvcsandbox-public1-b-net" \]                  | List of names of public subnets. You should specify at least two for high availability. |
+| private_subnets :exclamation:             |                                       | \[ "techsvcsandbox-private1-a-net", "techsvcsandbox-private1-b-net" \]                | List of names of private subnets. You should specify at least two for high availability. |
 | ssh_allow_campus                          | true                                  | true                                                                                  | Allow anyone from a campus subnet range to SSH to the EC2 instances. |
 | ssh_allow_cidrs                           | \[\]                                  | \[ "123.123.231.321/32" \]                                                            | List of CIDRs (subnet/bits) that should be allowed SSH access to the EC2 instances. Use 'ssh_allow_campus' to include the campus ranges. |
 | app_allow_campus                          | true                                  | true                                                                                  | Allow anyone from a campus subnet range to access the application ports. |
@@ -548,6 +567,18 @@ values. :exclamation: means the variable is required.
 | deploy_bucket :exclamation:               |                                       | "deploy-vault.example.illinois.edu-us-east-2"                                         | Name of the bucket that contains the deployment resources (`server.key`, `server.crt`, `ldap-credentials.txt`). |
 | deploy_prefix                             |                                       | "test/"                                                                               | Prefix of the resources inside the deployment bucket. This lets you use the same bucket for multiple deployments. If specified it must not begin with a "/" and must end with a "/". |
 | vault_key_user_roles                      | \[\]                                  | \[ "TechServicesStaff" \]                                                             | List of IAM role names that are given access to the AWS KMS Custom Key protecting some of the resources. People with these roles will be able to read the master keys secret and the CloudWatch Logs. |
+
+**Note: either both or one of `ssh_allow_campus` and `ssh_allow_cidrs` must be
+specified. Either both or one of `app_allow_campus` and `app_allow_cidrs` must
+be specified.**
+
+
+<a id="terraform-variables-vaultserver"/>
+
+### Vault Server
+
+| Name                                      | Default                               | Example                                                                               | Description |
+| ----------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------- | ----------- |
 | vault_server_admin_groups :exclamation:   |                                       | \[ "Admin Group 1", "Admin Group 2" \]                                                | List AD group names that will be given full access to SSH to the EC2 instance and manage the Vault server. Names specified here must mach AD exactly, including case. |
 | vault_server_private_ips                  | \[\]                                  | \[ "10.224.255.51", "10.224.255.181" \]                                               | List of private IP addresses in the subnet. This is useful if you're carefully managing the private IP space of your VPC. Otherwise, AWS will choose unallocated IPs for you. If you specify this variable you must choose an IP for each subnet in the `public_subnets` list. |
 | vault_server_fqdn                         | ""                                    | "vault.example.illinois.edu"                                                          | Primary FQDN of the vault server, present in the SSL certificate as the CN. |
@@ -555,7 +586,20 @@ values. :exclamation: means the variable is required.
 | vault_server_instance_type                | "t2.small"                            | "t2.medium"                                                                           | Instance type to use for the vault servers; do not use smaller than t2.micro. |
 | vault_server_image                        | "vault:latest"                        | "vault:0.10.3"                                                                        | Docker image to use for the vault server. If you use the "latest" tag then each run of the terraform will make sure the image is the most current. Production might want to use a specific version tag. |
 | vault_helper_image                        | "sbutler/uiuc-vault-helper:latest"    | "sbutler/uiuc-vault-helper:latest"                                                    | Docker image to use for the vault helper. If you use the "latest" tag then each run of the terraform will make sure the image is the most current. Production might want to use a specific version tag. |
-| vault_storage                             | \[ "dynamodb" \]                      | \[ "dynamodb" \]                                                                      | List of storage backends to provision with terraform. The first will be used as the primary, the others unused by vault server. Multiple backends are useful for doing migrations between them. Supported values: dynamodb |
+| vault_storage                             | \[ "dynamodb" \]                      | \[ "mariadb" \]                                                                       | List of storage backends to provision with terraform. The first will be used as the primary, the others unused by vault server. Multiple backends are useful for doing migrations between them. Supported values: dynamodb, mariadb |
+
+**Note:** for performance reasons on DynamoDB the initialization
+helper disables periodic cleanup of the AWS Identity Whitelist and
+Role Tag Blacklist. If you are using a storage backend other than
+DynamoDB then you should enable these features.
+
+
+<a id="terraform-variables-vaultstoragedyndb"/>
+
+### Vault Storage: DynamoDB
+
+| Name                                      | Default                               | Example                                                                               | Description |
+| ----------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------- | ----------- |
 | vault_storage_dyndb_max_rcu               | "20"                                  | "100"                                                                                 | Maximum number of Read Capacity Units for the DynamoDB table. |
 | vault_storage_dyndb_min_rcu               | "5"                                   | "2"                                                                                   | Minimum number of Read Capacity Units for the DynamoDB table. Do not use a number smaller than 2. |
 | vault_storage_dyndb_max_wcu               | "20"                                  | "100"                                                                                 | Maximum number of Write Capacity Units for the DynamoDB table. |
@@ -563,9 +607,27 @@ values. :exclamation: means the variable is required.
 | vault_storage_dyndb_rcu_target            | "70"                                  | "80"                                                                                  | Target percentage for autoscaling of the RCU. Below this percentage it will remove RCUs and above it will add them. |
 | vault_storage_dyndb_wcu_target            | "70"                                  | "80"                                                                                  | Target percentage for autoscaling of the WCU. Below this percentage it will remove WCUs and above it will add them. |
 
-**Note: either both or one of `ssh_allow_campus` and `ssh_allow_cidrs` must be
-specified. Either both or one of `app_allow_campus` and `app_allow_cidrs` must
-be specified.**
+
+<a id="terraform-variables-vaultstoragemariadb"/>
+
+### Vault Storage: MariaDB
+
+| Name                                      | Default                               | Example                                                                               | Description |
+| ----------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------- | ----------- |
+| vault_storage_mariadb_version             | "10.2"                                | "10.0"                                                                                | Version of the database engine to use, major and minor. Do not specify patch levels so that automatic maintenance happens. |
+| vault_storage_mariadb_class               | "db.t2.small"                         | "db.t2.medium"                                                                        | RDS instance class to use. |
+| vault_storage_mariadb_size                | "5"                                   | "20"                                                                                  | Size of the storage to attach, in GB. This value must be at least "5" and AWS recommends at least "20". |
+| vault_storage_mariadb_max_parallel        | "0"                                   | "130"                                                                                 | Maximum number of parallel operations to perform. This should not be more than the max_connections setting. If 0 then the terraform choose a value that's 90% of the max_connections. |
+| vault_storage_mariadb_admin_username      | "vault_admin"                         | "my_admin"                                                                            | Name of the administrator user for the database when provisioning. The password is randomly generated. |
+| vault_storage_mariadb_app_username        | "vault_server"                        | "example_server"                                                                      | Name of the application user that vault server will use to connect to the database. The password is randomly generated. |
+| vault_storage_mariadb_backup_retention    | "30"                                  | "90"                                                                                  | Number of days to retain database snapshots. |
+| vault_storage_mariadb_backup_window       | "09:00-10:00"                         | "09:00-10:00"                                                                         | Window to perform daily backups, in UTC. This must not overlap with the maintenance window. |
+| vault_storage_mariadb_maintenance_window  | "Sun:07:00-Sun:08:00"                 | "Mon:11:00-Mon:12:00"                                                                 | Window to perform weekly maintenance, in UTC. This must not overlap with the backup window. |
+
+
+<a id="terraform-variables-example"/>
+
+### Example
 
 Construct a file in `varfiles` with your variable choices. Using the
 examples above we might have a `varfiles/example.tfvars` that looks

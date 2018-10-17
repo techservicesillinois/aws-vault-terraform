@@ -156,7 +156,7 @@ variable "vault_helper_image" {
 
 variable "vault_storage" {
     type = "list"
-    description = "Type of storage to use for vault server (dynamodb, mysql). The first list item will be the primary storage, but all items will be provisioned (useful for migrations)."
+    description = "Type of storage to use for vault server (dynamodb, mariadb). The first list item will be the primary storage, but all items will be provisioned (useful for migrations)."
     default = [ "dynamodb" ]
 }
 
