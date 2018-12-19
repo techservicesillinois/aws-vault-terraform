@@ -7,10 +7,8 @@
   tasks:
     - name: modules required for the playbook
       yum:
-        name: "{{ item }}"
+        name: ['aws-cli']
         state: present
-      with_items:
-        - aws-cli
 
     - name: lookup the vault user passwd entry
       command: docker run -i {{ vault_image }} getent passwd vault
