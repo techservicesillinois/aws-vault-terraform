@@ -7,6 +7,7 @@ data "aws_acm_certificate" "vault_server" {
 
     domain = "${var.vault_server_fqdn}"
     statuses = [ "PENDING_VALIDATION", "ISSUED" ]
+    most_recent = true
 }
 
 
