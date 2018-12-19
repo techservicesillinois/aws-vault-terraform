@@ -1,5 +1,5 @@
 terraform {
-    required_version = "~> 0.11.7"
+    required_version = "~> 0.11.10"
 
     backend "s3" {
         bucket = "deploy-vault.example.illinois.edu-us-east-2"
@@ -14,7 +14,7 @@ terraform {
 
 
 provider "aws" {
-    version = "~> 1.40"
+    version = "~> 1.50"
 
     region = "us-east-2"
 }
