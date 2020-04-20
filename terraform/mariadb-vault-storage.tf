@@ -6,7 +6,7 @@ locals {
     vault_storage_mariadb = "${contains(var.vault_storage, "mariadb")}"
     vault_storage_mariadb_address = "${join("", aws_db_instance.vault_storage_mariadb.*.address)}"
     vault_storage_mariadb_port = "${join("", aws_db_instance.vault_storage_mariadb.*.port)}"
-    vault_storage_mariadb_admin_password = "${join("", random_string.vault_storage_mariadb_admin_password.*.result)}"
+    vault_storage_mariadb_admin_password = "${random_string.vault_storage_mariadb_admin_password.result}"
 }
 
 
@@ -73,8 +73,6 @@ resource "aws_db_subnet_group" "vault_storage_mariadb" {
 
 
 resource "random_string" "vault_storage_mariadb_admin_password" {
-    count = "${local.vault_storage_mariadb ? 1 : 0}"
-
     length = 32
 
     upper = true
@@ -90,8 +88,6 @@ resource "random_string" "vault_storage_mariadb_admin_password" {
 }
 
 resource "random_string" "vault_storage_mariadb_app_password" {
-    count = "${local.vault_storage_mariadb ? 1 : 0}"
-
     length = 32
 
     upper = true
@@ -129,7 +125,7 @@ resource "aws_db_instance" "vault_storage_mariadb" {
     kms_key_id = "${aws_kms_key.vault.arn}"
 
     username = "${var.vault_storage_mariadb_admin_username}"
-    password = "${element(random_string.vault_storage_mariadb_admin_password.*.result, count.index)}"
+    password = "${random_string.vault_storage_mariadb_admin_password.result}"
 
     backup_retention_period = "${var.vault_storage_mariadb_backup_retention}"
     backup_window = "${var.vault_storage_mariadb_backup_window}"
