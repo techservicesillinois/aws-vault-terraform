@@ -321,6 +321,7 @@ resource "null_resource" "ecs_instance_ansible" {
     triggers {
         ansible_md5 = "${md5(file("${path.module}/files/ansible/ecs-instance.yml"))}"
         ansible_extravars = "${jsonencode(local.ecs_instance_ansible_extravars)}"
+        instance_ids = "${join(",", aws_instance.vault_server.*.id)}"
     }
 
     provisioner "local-exec" {
@@ -343,6 +344,7 @@ resource "null_resource" "vault_server_ansible" {
     triggers {
         ansible_md5 = "${md5(file("${path.module}/files/ansible/vault-server.yml"))}"
         ansible_extravars = "${jsonencode(local.vault_server_ansible_extravars)}"
+        instance_ids = "${join(",", aws_instance.vault_server.*.id)}"
         cluster_addr = "${element(aws_instance.vault_server.*.private_ip, count.index)}"
         api_addr = "${element(var.vault_server_public_fqdns, count.index)}"
         tls_crt_etag = "${data.aws_s3_bucket_object.vault_server_tls_key.etag}"
