@@ -41,6 +41,7 @@ data "template_file" "vault_init_containers" {
         helper_ldapcreds_bucket = "${var.deploy_bucket}"
         helper_ldapcreds_object = "${var.deploy_prefix}ldap-credentials.txt"
         helper_master_secret = "${aws_secretsmanager_secret.vault_master.name}"
+        helper_recovery_secret = "${aws_secretsmanager_secret.vault_recovery.name}"
     }
 }
 
@@ -60,9 +61,6 @@ data "template_file" "vault_server_containers" {
             floor(lookup(var.docker_instance2memory, var.vault_server_instance_type) / 2)
         )}"
         server_cpu = "${lookup(var.docker_instance2cpu, var.vault_server_instance_type)}"
-
-        helper_image = "${local.vault_helper_image}"
-        helper_master_secret = "${aws_secretsmanager_secret.vault_master.name}"
     }
 }
 

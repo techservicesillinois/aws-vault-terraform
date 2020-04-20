@@ -6,6 +6,10 @@ output "vault_master_arn" {
     value = "${aws_secretsmanager_secret.vault_master.arn}"
 }
 
+output "vault_recovery_arn" {
+    value = "${aws_secretsmanager_secret.vault_recovery.arn}"
+}
+
 output "vault_server_lb" {
     value = "${join("", aws_lb.vault_server.*.dns_name)}"
 }

@@ -40,6 +40,7 @@ data "aws_iam_policy_document" "vault_init_task" {
         effect = "Allow",
         actions = [
             "kms:Decrypt",
+            "kms:DescribeKey",
             "kms:Encrypt",
             "kms:GenerateDataKey*",
         ]
@@ -70,26 +71,19 @@ data "aws_iam_policy_document" "vault_init_task" {
         ]
         resources = [
             "${aws_secretsmanager_secret.vault_master.arn}",
+            "${aws_secretsmanager_secret.vault_recovery.arn}",
         ]
     }
 }
 
 data "aws_iam_policy_document" "vault_server_task" {
     statement {
-        effect = "Allow"
-        actions = [
-            "ec2:DescribeInstances",
-            "iam:GetInstanceProfile",
-            "iam:GetUser",
-            "iam:GetRole",
-        ]
-        resources = [ "*" ]
-    }
-
-    statement {
         effect = "Allow",
         actions = [
             "kms:Decrypt",
+            "kms:DescribeKey",
+            "kms:Encrypt",
+            "kms:GenerateDataKey*",
         ]
         resources = [
             "${aws_kms_key.vault.arn}",
@@ -99,13 +93,12 @@ data "aws_iam_policy_document" "vault_server_task" {
     statement {
         effect = "Allow"
         actions = [
-            "secretsmanager:DescribeSecret",
-            "secretsmanager:GetSecretValue",
-            "secretsmanager:ListSecretVersionIds",
+            "ec2:DescribeInstances",
+            "iam:GetInstanceProfile",
+            "iam:GetUser",
+            "iam:GetRole",
         ]
-        resources = [
-            "${aws_secretsmanager_secret.vault_master.arn}",
-        ]
+        resources = [ "*" ]
     }
 }
 
@@ -141,7 +134,7 @@ resource "aws_iam_policy" "vault_server_instance" {
 resource "aws_iam_policy" "vault_init_task" {
     name_prefix = "${var.project}-task-"
     path = "/${var.project}/"
-    description = "Allow ${var.project} vault server init task read and update the master Secret"
+    description = "Allow ${var.project} vault server init task read and update the master and recovery Secrets"
 
     policy = "${data.aws_iam_policy_document.vault_init_task.json}"
 
@@ -153,7 +146,7 @@ resource "aws_iam_policy" "vault_init_task" {
 resource "aws_iam_policy" "vault_server_task" {
     name_prefix = "${var.project}-task-"
     path = "/${var.project}/"
-    description = "Allow ${var.project} vault server tasks to access the master Secret and EC2 information"
+    description = "Allow ${var.project} vault server tasks to access the KMS and EC2 information"
 
     policy = "${data.aws_iam_policy_document.vault_server_task.json}"
 

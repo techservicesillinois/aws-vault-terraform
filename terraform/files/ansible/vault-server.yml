@@ -102,6 +102,11 @@
             owner: "{{ vault_user }}"
             group: "{{ vault_group }}"
             content: |
+                seal "awskms" {
+                  region     = "{{ region }}"
+                  kms_key_id = "{{ kms_key_id }}"
+                }
+
                 storage "dynamodb" {
                     ha_enabled = "true"
                     region = "{{ region }}"
@@ -189,6 +194,11 @@
             owner: "{{ vault_user }}"
             group: "{{ vault_group }}"
             content: |
+                seal "awskms" {
+                  region     = "{{ region }}"
+                  kms_key_id = "{{ kms_key_id }}"
+                }
+
                 storage "mysql" {
                     ha_enabled = "true"
                     address = "{{ mariadb_host }}:{{ mariadb_port }}"

@@ -23,6 +23,8 @@ locals {
 
         lb_subnet_cidrs = "${join(",", data.aws_subnet.public.*.cidr_block)}"
 
+        kms_key_id = "${aws_kms_key.vault.id}"
+
         tls_bucket = "${var.deploy_bucket}"
         tls_crt_object = "${var.deploy_prefix}server.crt"
         tls_key_object = "${var.deploy_prefix}server.key"

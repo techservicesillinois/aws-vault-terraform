@@ -148,3 +148,25 @@ resource "aws_secretsmanager_secret" "vault_master" {
         prevent_destroy = true
     }
 }
+
+resource "aws_secretsmanager_secret" "vault_recovery" {
+    name = "${var.project}/recovery"
+    description = "Segmented recovery keys for unsealing vault."
+
+    kms_key_id = "${aws_kms_key.vault.id}"
+    recovery_window_in_days = "${lower(var.environment) == "production" ? 30 : 7}"
+
+    tags {
+        Service = "${var.service}"
+        Contact = "${var.contact}"
+        DataClassification = "${var.data_classification}"
+        Environment = "${var.environment}"
+
+        Project = "${var.project}"
+        NetID = "${var.contact}"
+    }
+
+    lifecycle {
+        #prevent_destroy = true
+    }
+}
