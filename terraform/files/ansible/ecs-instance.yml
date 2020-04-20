@@ -342,7 +342,6 @@
           regexp: "^%\\Q{{ item|replace(' ', '\\ ')|lower }}\\E\\s"
           line: "%{{ item|replace(' ', '\\ ')|lower }} ALL=(ALL) NOPASSWD: ALL"
       with_items: "{{ sudo_admin_groups }}"
-      validate: /usr/sbin/visudo -cf %s
 
     - name: ssh | configure
       copy:
@@ -498,7 +497,6 @@
             #	ForceCommand cvs server
             Match Group "domain users"
                 AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
-      validate: /usr/sbin/sshd -t -f %s
       notify: ssh | reload
 
     - name: awslogs | install
