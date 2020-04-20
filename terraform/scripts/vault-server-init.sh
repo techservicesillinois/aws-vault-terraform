@@ -13,6 +13,20 @@ if [[ -z $UIUC_VAULT_INIT_TASK ]]; then
     exit 1
 fi
 
+instance_count=$(aws ecs list-container-instances --cluster "$UIUC_VAULT_CLUSTER" --query 'length(containerInstanceArns[])')
+instance_waitmax=30
+while [[ $instance_count -lt 1 && $instance_waitmax -gt 0 ]]; do
+    echo "INFO: waiting for container instances to start"
+    sleep 10
+    (( instance_waitmax-- )) || :
+
+    instance_count=$(aws ecs list-container-instances --cluster "$UIUC_VAULT_CLUSTER" --query 'length(containerInstanceArns[])')
+done
+if [[ $instance_count -lt 1 ]]; then
+    echo "ERROR: timeout waiting for container instances to start"
+    exit 2
+fi
+
 echo "INFO: launching vault-server init task"
 task_arn="$(aws ecs run-task \
     --cluster "$UIUC_VAULT_CLUSTER" \
