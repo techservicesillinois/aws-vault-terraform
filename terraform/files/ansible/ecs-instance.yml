@@ -6,10 +6,8 @@
   tasks:
     - name: modules required for the playbook
       yum:
-        name: "{{ item }}"
+        name: ['aws-cli']
         state: present
-      with_items:
-        - aws-cli
 
     - name: cis | disable unused filesystems
       copy:
