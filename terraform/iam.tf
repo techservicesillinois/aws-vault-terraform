@@ -167,6 +167,6 @@ resource "aws_secretsmanager_secret" "vault_recovery" {
     }
 
     lifecycle {
-        #prevent_destroy = true
+        prevent_destroy = true
     }
 }
