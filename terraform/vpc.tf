@@ -3,30 +3,31 @@
 # ===================================================================
 
 data "aws_subnet" "public" {
-    count = "${length(var.public_subnets)}"
+    count = length(var.public_subnets)
 
     state = "available"
 
-    tags {
-        Name = "${element(var.public_subnets, count.index)}"
+    tags = {
+        Name = var.public_subnets[count.index]
     }
 }
+
 data "aws_vpc" "public" {
-    id = "${data.aws_subnet.public.0.vpc_id}"
+    id    = data.aws_subnet.public[0].vpc_id
     state = "available"
 }
-
 
 data "aws_subnet" "private" {
-    count = "${length(var.private_subnets)}"
+    count = length(var.private_subnets)
 
     state = "available"
 
-    tags {
-        Name = "${element(var.private_subnets, count.index)}"
+    tags = {
+        Name = var.private_subnets[count.index]
     }
 }
+
 data "aws_vpc" "private" {
-    id = "${data.aws_subnet.private.0.vpc_id}"
+    id    = data.aws_subnet.private[0].vpc_id
     state = "available"
 }

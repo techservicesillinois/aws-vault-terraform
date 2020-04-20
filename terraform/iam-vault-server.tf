@@ -20,7 +20,7 @@ data "aws_iam_policy_document" "vault_server_instance" {
             "logs:PutLogEvents",
         ]
         resources = [
-            "${aws_cloudwatch_log_group.vault_server_containers.arn}",
+            aws_cloudwatch_log_group.vault_server_containers.arn,
         ]
     }
 
@@ -37,7 +37,7 @@ data "aws_iam_policy_document" "vault_server_instance" {
 
 data "aws_iam_policy_document" "vault_init_task" {
     statement {
-        effect = "Allow",
+        effect = "Allow"
         actions = [
             "kms:Decrypt",
             "kms:DescribeKey",
@@ -45,7 +45,7 @@ data "aws_iam_policy_document" "vault_init_task" {
             "kms:GenerateDataKey*",
         ]
         resources = [
-            "${aws_kms_key.vault.arn}",
+            aws_kms_key.vault.arn,
         ]
     }
 
@@ -67,18 +67,18 @@ data "aws_iam_policy_document" "vault_init_task" {
             "secretsmanager:ListSecretVersionIds",
             "secretsmanager:PutSecretValue",
             "secretsmanager:UpdateSecret",
-            "secretsmanager:UpdateSecretVersionStage"
+            "secretsmanager:UpdateSecretVersionStage",
         ]
         resources = [
-            "${aws_secretsmanager_secret.vault_master.arn}",
-            "${aws_secretsmanager_secret.vault_recovery.arn}",
+            aws_secretsmanager_secret.vault_master.arn,
+            aws_secretsmanager_secret.vault_recovery.arn,
         ]
     }
 }
 
 data "aws_iam_policy_document" "vault_server_task" {
     statement {
-        effect = "Allow",
+        effect = "Allow"
         actions = [
             "kms:Decrypt",
             "kms:DescribeKey",
@@ -86,7 +86,7 @@ data "aws_iam_policy_document" "vault_server_task" {
             "kms:GenerateDataKey*",
         ]
         resources = [
-            "${aws_kms_key.vault.arn}",
+            aws_kms_key.vault.arn,
         ]
     }
 
@@ -98,7 +98,7 @@ data "aws_iam_policy_document" "vault_server_task" {
             "iam:GetUser",
             "iam:GetRole",
         ]
-        resources = [ "*" ]
+        resources = ["*"]
     }
 }
 
@@ -109,11 +109,10 @@ data "aws_iam_policy_document" "vault_server_dyndb_task" {
             "dynamodb:*",
         ]
         resources = [
-            "${local.vault_storage_dyndb_arn}",
+            local.vault_storage_dyndb_arn,
         ]
     }
 }
-
 
 # =========================================================
 # Resources
@@ -121,10 +120,10 @@ data "aws_iam_policy_document" "vault_server_dyndb_task" {
 
 resource "aws_iam_policy" "vault_server_instance" {
     name_prefix = "${var.project}-ec2-"
-    path = "/${var.project}/"
+    path        = "/${var.project}/"
     description = "Allow ${var.project} instances to read from the deployment bucket and send Docker vault-server container logs to CloudWatch Logs"
 
-    policy = "${data.aws_iam_policy_document.vault_server_instance.json}"
+    policy = data.aws_iam_policy_document.vault_server_instance.json
 
     lifecycle {
         create_before_destroy = true
@@ -133,10 +132,10 @@ resource "aws_iam_policy" "vault_server_instance" {
 
 resource "aws_iam_policy" "vault_init_task" {
     name_prefix = "${var.project}-task-"
-    path = "/${var.project}/"
+    path        = "/${var.project}/"
     description = "Allow ${var.project} vault server init task read and update the master and recovery Secrets"
 
-    policy = "${data.aws_iam_policy_document.vault_init_task.json}"
+    policy = data.aws_iam_policy_document.vault_init_task.json
 
     lifecycle {
         create_before_destroy = true
@@ -145,64 +144,64 @@ resource "aws_iam_policy" "vault_init_task" {
 
 resource "aws_iam_policy" "vault_server_task" {
     name_prefix = "${var.project}-task-"
-    path = "/${var.project}/"
+    path        = "/${var.project}/"
     description = "Allow ${var.project} vault server tasks to access the KMS and EC2 information"
 
-    policy = "${data.aws_iam_policy_document.vault_server_task.json}"
+    policy = data.aws_iam_policy_document.vault_server_task.json
 
     lifecycle {
         create_before_destroy = true
     }
 }
-resource "aws_iam_policy" "vault_server_dyndb_task" {
-    count = "${local.vault_storage_dyndb ? 1 : 0}"
 
+resource "aws_iam_policy" "vault_server_dyndb_task" {
     name_prefix = "${var.project}-task-"
-    path = "/${var.project}/"
+    path        = "/${var.project}/"
     description = "Allow ${var.project} vault server tasks to access DynamoDB"
 
-    policy = "${data.aws_iam_policy_document.vault_server_dyndb_task.json}"
+    policy = data.aws_iam_policy_document.vault_server_dyndb_task.json
 
     lifecycle {
         create_before_destroy = true
     }
 }
-
 
 resource "aws_iam_instance_profile" "vault_server" {
     name_prefix = "${var.project}-server-"
-    path = "/${var.project}/server/"
-    role = "${aws_iam_role.vault_server.name}"
+    path        = "/${var.project}/server/"
+    role        = aws_iam_role.vault_server.name
 }
 
 resource "aws_iam_role" "vault_server" {
     name_prefix = "${var.project}-server-"
-    path = "/${var.project}/server/"
+    path        = "/${var.project}/server/"
     description = "ECS ${var.project} server instance role"
 
-    assume_role_policy = "${data.aws_iam_policy_document.instance_assume_role.json}"
+    assume_role_policy = data.aws_iam_policy_document.instance_assume_role.json
 }
 
 # Base required roles for any ECS Cluster Instance that logs to CloudWatch.
 resource "aws_iam_role_policy_attachment" "vault_server_AmazonEC2ContainerServiceforEC2Role" {
-    role = "${aws_iam_role.vault_server.name}"
+    role       = aws_iam_role.vault_server.name
     policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
 
     lifecycle {
         create_before_destroy = true
     }
 }
+
 resource "aws_iam_role_policy_attachment" "vault_server_instance_logs" {
-    role = "${aws_iam_role.vault_server.name}"
-    policy_arn = "${aws_iam_policy.instance_logs.arn}"
+    role       = aws_iam_role.vault_server.name
+    policy_arn = aws_iam_policy.instance_logs.arn
 
     lifecycle {
         create_before_destroy = true
     }
 }
+
 resource "aws_iam_role_policy_attachment" "vault_server_instance" {
-    role = "${aws_iam_role.vault_server.name}"
-    policy_arn = "${aws_iam_policy.vault_server_instance.arn}"
+    role       = aws_iam_role.vault_server.name
+    policy_arn = aws_iam_policy.vault_server_instance.arn
 
     lifecycle {
         create_before_destroy = true
@@ -213,9 +212,9 @@ resource "aws_iam_role_policy_attachment" "vault_server_instance" {
 # all policies are attached and available.
 resource "null_resource" "wait_vault_server_role" {
     depends_on = [
-        "aws_iam_role_policy_attachment.vault_server_AmazonEC2ContainerServiceforEC2Role",
-        "aws_iam_role_policy_attachment.vault_server_instance_logs",
-        "aws_iam_role_policy_attachment.vault_server_instance",
+        aws_iam_role_policy_attachment.vault_server_AmazonEC2ContainerServiceforEC2Role,
+        aws_iam_role_policy_attachment.vault_server_instance_logs,
+        aws_iam_role_policy_attachment.vault_server_instance,
     ]
 
     provisioner "local-exec" {
@@ -223,19 +222,18 @@ resource "null_resource" "wait_vault_server_role" {
     }
 }
 
-
 resource "aws_iam_role" "vault_init_task" {
     name_prefix = "${var.project}-task-"
-    path = "/${var.project}/task/"
+    path        = "/${var.project}/task/"
     description = "ECS ${var.project} vault-server init task role"
 
-    assume_role_policy = "${data.aws_iam_policy_document.task_assume_role.json}"
+    assume_role_policy = data.aws_iam_policy_document.task_assume_role.json
 }
 
 # Base required roles for any ECS Cluster Instance that logs to CloudWatch.
 resource "aws_iam_role_policy_attachment" "vault_init_task" {
-    role = "${aws_iam_role.vault_init_task.name}"
-    policy_arn = "${aws_iam_policy.vault_init_task.arn}"
+    role       = aws_iam_role.vault_init_task.name
+    policy_arn = aws_iam_policy.vault_init_task.arn
 
     lifecycle {
         create_before_destroy = true
@@ -245,38 +243,36 @@ resource "aws_iam_role_policy_attachment" "vault_init_task" {
 # It can take a bit for policies to attached. Depend on this role to make sure
 # all policies are attached and available.
 resource "null_resource" "wait_vault_init_task_role" {
-    depends_on = [
-        "aws_iam_role_policy_attachment.vault_init_task",
-    ]
+    depends_on = [ aws_iam_role_policy_attachment.vault_init_task ]
 
     provisioner "local-exec" {
         command = "sleep 30"
     }
 }
 
-
 resource "aws_iam_role" "vault_server_task" {
     name_prefix = "${var.project}-task-"
-    path = "/${var.project}/task/"
+    path        = "/${var.project}/task/"
     description = "ECS ${var.project} vault-server task role"
 
-    assume_role_policy = "${data.aws_iam_policy_document.task_assume_role.json}"
+    assume_role_policy = data.aws_iam_policy_document.task_assume_role.json
 }
 
 # Base required roles for any ECS Cluster Instance that logs to CloudWatch.
 resource "aws_iam_role_policy_attachment" "vault_server_task" {
-    role = "${aws_iam_role.vault_server_task.name}"
-    policy_arn = "${aws_iam_policy.vault_server_task.arn}"
+    role       = aws_iam_role.vault_server_task.name
+    policy_arn = aws_iam_policy.vault_server_task.arn
 
     lifecycle {
         create_before_destroy = true
     }
 }
-resource "aws_iam_role_policy_attachment" "vault_server_dyndb_task" {
-    count = "${local.vault_storage_dyndb ? 1 : 0}"
 
-    role = "${aws_iam_role.vault_server_task.name}"
-    policy_arn = "${element(aws_iam_policy.vault_server_dyndb_task.*.arn, count.index)}"
+resource "aws_iam_role_policy_attachment" "vault_server_dyndb_task" {
+    count = local.vault_storage_dyndb ? 1 : 0
+
+    role       = aws_iam_role.vault_server_task.name
+    policy_arn = aws_iam_policy.vault_server_dyndb_task.arn
 
     lifecycle {
         create_before_destroy = true
@@ -287,8 +283,8 @@ resource "aws_iam_role_policy_attachment" "vault_server_dyndb_task" {
 # all policies are attached and available.
 resource "null_resource" "wait_vault_server_task_role" {
     depends_on = [
-        "aws_iam_role_policy_attachment.vault_server_task",
-        "aws_iam_role_policy_attachment.vault_server_dyndb_task",
+        aws_iam_role_policy_attachment.vault_server_task,
+        aws_iam_role_policy_attachment.vault_server_dyndb_task,
     ]
 
     provisioner "local-exec" {
