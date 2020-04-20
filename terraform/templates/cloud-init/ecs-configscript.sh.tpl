@@ -3,17 +3,17 @@
 set -e
 
 write_file () {
-    local file="$$1"
-    local path="$$(dirname "$$file")"
+    local file="$1"
+    local path="$(dirname "$file")"
 
     local filemod="$${2:-0644}"
     local fileown="$${3:-root:root}"
 
-    [[ -e $$path ]] || mkdir -p "$$path"
-    cat > "$$file"
+    [[ -e $path ]] || mkdir -p "$path"
+    cat > "$file"
 
-    chmod "$$filemod" "$$file"
-    chown "$$fileown" "$$file"
+    chmod "$filemod" "$file"
+    chown "$fileown" "$file"
 }
 
 write_file /etc/ecs/ecs.config <<EOF
