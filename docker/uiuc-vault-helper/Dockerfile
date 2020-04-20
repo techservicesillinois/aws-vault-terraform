@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM debian:buster
 
 COPY docker-entrypoint.sh /usr/local/bin/
 

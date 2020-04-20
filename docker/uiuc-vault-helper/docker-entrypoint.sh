@@ -2,12 +2,6 @@
 
 set -e
 
-# Maximum number of times the helper will try to read the secret. If
-# you set 0 then it will try indefinitely.
-#
-# Default: 0
-: ${UIUC_VAULT_MASTER_SECRET_MAX_TRIES:=0}
-
 # LDAP server to connect to for Vault authentication.
 #
 # Default: ldap-ad-aws.ldap.illinois.edu
@@ -78,48 +72,25 @@ vault () {
 #
 # Any output is redirected to stderr instead of stdout.
 uiuc_vault_status () {
-    local _exitcode
+    local _status_result _status_sealed _status_initialized
 
     # Turn off error checking when running the status command.
     set +e
-    vault status 1>&2; _exitcode=$?
+    _status_result=$(vault status)
     set -e
 
-    case $_exitcode in
-        0)      echo "unsealed" ;;
-        2)      echo "sealed"   ;;
-        *)      echo "error"    ;;
-    esac
-}
+    _status_sealed=$(jq -r '.sealed' <<< "$_status_result")
+    _status_initialized=$(jq -r '.initialized' <<< "$_status_result")
 
-# Return the master keys from the secrets manager. This will loop if
-# there is an error getting the secret value or the vaule retrieved
-# doesn't contain any keys, until `UIUC_VAULT_MASTER_SECRET_MAX_TRIES`
-# is up. It sleeps 60 seconds between tries.
-#
-# Keys are returned on stdout, one per line.
-uiuc_master_keys () {
-    if [[ -z $UIUC_VAULT_MASTER_SECRET ]]; then
-        echoerr "ERROR: no UIUC_VAULT_MASTER_SECRET specified"
-        return 1
+    if [[ $_status_initialized = 'false' ]]; then
+        echo "uninitialized"
+    elif [[ $_status_initialized = 'true' && $_status_sealed = 'true' ]]; then
+        echo "sealed"
+    elif [[ $_status_initialized = 'true' && $_status_sealed = 'false' ]]; then
+        echo "unsealed"
+    else
+        echo "error"
     fi
-
-    local _result='' _result_keys=''
-    for (( _idx = 0; _idx < UIUC_VAULT_MASTER_SECRET_MAX_TRIES || UIUC_VAULT_MASTER_SECRET_MAX_TRIES == 0; _idx++ )); do
-        _result="$(aws secretsmanager get-secret-value --secret-id "$UIUC_VAULT_MASTER_SECRET" || :)"
-        _result_keys="$(jq -r '.SecretString | fromjson? | .unseal_keys_hex[]' <<< "$_result")"
-
-        if [[ -n $_result_keys ]]; then
-            echo "$_result_keys"
-            return 0
-        else
-            echoerr "Waiting for vault-server master secret ($UIUC_VAULT_MASTER_SECRET)"
-            sleep 60
-        fi
-    done
-
-    echoerr "ERROR: unable to get vault-server master secret ($UIUC_VAULT_MASTER_SECRET) after $UIUC_VAULT_MASTER_SECRET_MAX_TRIES tries"
-    return 1
 }
 
 # Initialize the vault-server. It does this by following this process:
@@ -136,12 +107,16 @@ uiuc_master_keys () {
 # The root key returned by the init operation will be revoked when the
 # script exits.
 uiuc_vault_init () {
-    local _init_result _init_keys
+    local _init_result _init_masterkeys _init_recoverykeys
     local _status _result
     local _ldap_accessor
 
     if [[ -z $UIUC_VAULT_MASTER_SECRET ]]; then
         echoerr "ERROR: no UIUC_VAULT_MASTER_SECRET specified"
+        return 1
+    fi
+    if [[ -z $UIUC_VAULT_RECOVERY_SECRET ]]; then
+        echoerr "ERROR: no UIUC_VAULT_RECOVERY_SECRET specified"
         return 1
     fi
     if [[ -z $UIUC_VAULT_LDAPCREDS_BUCKET ]]; then
@@ -170,14 +145,18 @@ uiuc_vault_init () {
         return 0
     fi
 
-    _init_result="$(vault operator init)"
+    _init_result="$(vault operator init -recovery-shares=5 -recovery-threshold=3)"
 
-    uiuc_vault_unseal $(jq -r '.unseal_keys_hex[]' <<< "$_init_result")
-
-    _init_keys="$(jq '{ unseal_keys_b64: .unseal_keys_b64, unseal_keys_hex: .unseal_keys_hex }' <<< "$_init_result")"
+    _init_masterkeys="$(jq '{ unseal_keys_b64: .unseal_keys_b64, unseal_keys_hex: .unseal_keys_hex }' <<< "$_init_result")"
     aws secretsmanager put-secret-value \
         --secret-id "$UIUC_VAULT_MASTER_SECRET" \
-        --secret-string "${_init_keys@E}" \
+        --secret-string "${_init_masterkeys@E}" \
+        --version-stages AWSCURRENT
+
+    _init_recoverykeys="$(jq '{ recovery_keys_b64: .recovery_keys_b64, recovery_keys_hex: .recovery_keys_hex }' <<< "$_init_result")"
+    aws secretsmanager put-secret-value \
+        --secret-id "$UIUC_VAULT_RECOVERY_SECRET" \
+        --secret-string "${_init_recoverykeys@E}" \
         --version-stages AWSCURRENT
 
     VAULT_TOKEN="$(jq -r '.root_token' <<< "$_init_result")"
@@ -232,54 +211,10 @@ EOF
 
     echoerr "INFO: enabling aws auth"
     vault auth enable aws
-    vault write auth/aws/config/tidy/identity-whitelist \
-        disable_periodic_tidy=true
-    vault write auth/aws/config/tidy/roletag-blacklist \
-        disable_periodic_tidy=true
-}
-
-# Unseal the vault-server using keys specified as arguments, or
-# retrieved from the master secret.
-uiuc_vault_unseal () {
-    declare -a _master_keys
-    if [[ $# -gt 0 ]]; then
-        _master_keys=("$@")
-    else
-        _master_keys=($(uiuc_master_keys))
-    fi
-
-    local _idx=0 _status=''
-    while [[ $_idx -lt ${#_master_keys[@]} ]]; do
-        _status=$(uiuc_vault_status)
-
-        case $_status in
-            unsealed)
-                echoerr "INFO: vault-server is unsealed"
-                return 0
-                ;;
-
-            error)
-                echoerr "ERROR: vault-server status returned an error"
-                # Reset the seal keys used and sleep for a minute
-                _idx=0
-                sleep 60
-                ;;
-
-            sealed)
-                echoerr "INFO: unsealing vault-server with key #$_idx"
-                vault operator unseal "${_master_keys[$_idx]}"
-                (( _idx++ )) || :
-                ;;
-        esac
-    done
-
-    echoerr "ERROR: not enough keys to unseal the vault-server"
-    return 1
 }
 
 cmd="$1"; shift
 case "$cmd" in
     init)           uiuc_vault_init "$@";;
-    unseal)         uiuc_vault_unseal "$@";;
     *)              exec "$cmd" "$@"
 esac
