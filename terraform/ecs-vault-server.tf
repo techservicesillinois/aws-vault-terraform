@@ -96,7 +96,8 @@ resource "null_resource" "vault_server_init" {
     ]
 
     provisioner "local-exec" {
-        command = "${path.module}/scripts/vault-server-init.sh"
+        command = "./scripts/vault-server-init.sh"
+        working_dir = "${path.module}"
 
         environment {
             UIUC_VAULT_CLUSTER = "${aws_ecs_cluster.vault_server.name}"
