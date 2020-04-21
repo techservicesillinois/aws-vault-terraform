@@ -255,7 +255,7 @@ resource "aws_instance" "vault_server" {
         volume_size = 8
 
         encrypted  = true
-        kms_key_id = aws_kms_key.vault.id
+        kms_key_id = aws_kms_key.vault.arn
 
         delete_on_termination = true
     }
@@ -267,7 +267,7 @@ resource "aws_instance" "vault_server" {
         volume_size = 22
 
         encrypted  = true
-        kms_key_id = aws_kms_key.vault.id
+        kms_key_id = aws_kms_key.vault.arn
 
         delete_on_termination = true
     }
