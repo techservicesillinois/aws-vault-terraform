@@ -16,9 +16,8 @@ locals {
 resource "aws_dynamodb_table" "vault_storage" {
     count = local.vault_storage_dyndb ? 1 : 0
 
-    name           = "${var.project}-storage"
-    read_capacity  = var.vault_storage_dyndb_min_rcu
-    write_capacity = var.vault_storage_dyndb_min_wcu
+    name         = "${var.project}-storage"
+    billing_mode = "PAY_PER_REQUEST"
 
     hash_key  = "Path"
     range_key = "Key"
@@ -52,79 +51,6 @@ resource "aws_dynamodb_table" "vault_storage" {
     }
 
     lifecycle {
-        ignore_changes = [
-            read_capacity,
-            write_capacity,
-        ]
-
         prevent_destroy = true
-    }
-}
-
-# Autoscale the RCU
-resource "aws_appautoscaling_target" "vault_storage_dyndb_rcu" {
-    count = local.vault_storage_dyndb ? 1 : 0
-
-    service_namespace = "dynamodb"
-    resource_id       = "table/${aws_dynamodb_table.vault_storage[count.index].name}"
-
-    scalable_dimension = "dynamodb:table:ReadCapacityUnits"
-    min_capacity       = var.vault_storage_dyndb_min_rcu
-    max_capacity       = var.vault_storage_dyndb_max_rcu
-
-    role_arn = data.aws_iam_role.appautoscaling_dynamodb.arn
-}
-
-resource "aws_appautoscaling_policy" "vault_storage_dyndb_rcu" {
-    count = local.vault_storage_dyndb ? 1 : 0
-
-    name = "DynamoDBReadCapacityUtilization:table/${aws_dynamodb_table.vault_storage[count.index].name}"
-
-    policy_type       = "TargetTrackingScaling"
-    service_namespace = "dynamodb"
-    resource_id       = "table/${aws_dynamodb_table.vault_storage[count.index].name}"
-
-    scalable_dimension = "dynamodb:table:ReadCapacityUnits"
-
-    target_tracking_scaling_policy_configuration {
-        predefined_metric_specification {
-            predefined_metric_type = "DynamoDBReadCapacityUtilization"
-        }
-
-        target_value = var.vault_storage_dyndb_rcu_target
-    }
-}
-
-# Autoscale the WCU
-resource "aws_appautoscaling_target" "vault_storage_dyndb_wcu" {
-    count = local.vault_storage_dyndb ? 1 : 0
-
-    service_namespace = "dynamodb"
-    resource_id       = "table/${aws_dynamodb_table.vault_storage[count.index].name}"
-
-    scalable_dimension = "dynamodb:table:WriteCapacityUnits"
-    min_capacity       = var.vault_storage_dyndb_min_wcu
-    max_capacity       = var.vault_storage_dyndb_max_wcu
-
-    role_arn = data.aws_iam_role.appautoscaling_dynamodb.arn
-}
-
-resource "aws_appautoscaling_policy" "vault_storage_dyndb_wcu" {
-    count = local.vault_storage_dyndb ? 1 : 0
-
-    name = "DynamoDBWriteCapacityUtilization:table/${aws_dynamodb_table.vault_storage[count.index].name}"
-
-    policy_type       = "TargetTrackingScaling"
-    service_namespace = "dynamodb"
-    resource_id       = "table/${aws_dynamodb_table.vault_storage[count.index].name}"
-
-    scalable_dimension = "dynamodb:table:WriteCapacityUnits"
-
-    target_tracking_scaling_policy_configuration {
-        predefined_metric_specification {
-            predefined_metric_type = "DynamoDBWriteCapacityUtilization"
-        }
-
-        target_value = var.vault_storage_dyndb_wcu_target
     }
 }

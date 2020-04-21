@@ -164,40 +164,10 @@ variable "vault_storage" {
 # Vaul Storage: DynamoDB
 # =========================================================
 
-variable "vault_storage_dyndb_max_rcu" {
+variable "vault_storage_dyndb_max_parallel" {
     type        = number
-    description = "Vault storage maximum RCU."
-    default     = 20
-}
-
-variable "vault_storage_dyndb_min_rcu" {
-    type        = number
-    description = "Vault storage minimum RCU."
-    default     = 5
-}
-
-variable "vault_storage_dyndb_max_wcu" {
-    type        = number
-    description = "Vault storage maximum WCU."
-    default     = 20
-}
-
-variable "vault_storage_dyndb_min_wcu" {
-    type        = number
-    description = "Vault storage minimum WCU."
-    default     = 5
-}
-
-variable "vault_storage_dyndb_rcu_target" {
-    type        = number
-    description = "Vault storage target RCU utilization percentage."
-    default     = 70
-}
-
-variable "vault_storage_dyndb_wcu_target" {
-    type        = number
-    description = "Vault storage target WCU utilization percentage."
-    default     = 70
+    description = "Maximum number of parallel operations vault server will perform when using this backend."
+    default     = 128
 }
 
 # =========================================================

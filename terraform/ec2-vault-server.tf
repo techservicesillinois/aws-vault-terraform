@@ -35,7 +35,7 @@ locals {
         vault_storage = var.vault_storage
 
         dyndb_name         = local.vault_storage_dyndb_name
-        dyndb_max_parallel = var.vault_storage_dyndb_max_rcu * 2
+        dyndb_max_parallel = var.vault_storage_dyndb_max_parallel
 
         mariadb_host         = local.vault_storage_mariadb_address
         mariadb_port         = local.vault_storage_mariadb_port
