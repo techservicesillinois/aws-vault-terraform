@@ -5,13 +5,13 @@ environment = "Development"
 
 project = "sbutler1-vault"
 key_name = "sbutler1@illinois.edu"
-key_file = "~/.ssh/main-work"
-ssh_allow_cidrs = [
-    "98.226.112.59/32",
-]
-app_allow_cidrs = [
-    "98.226.112.59/32",
-]
+key_file = "~/.ssh/main-work-aws"
+ssh_allow_cidrs = {
+    "sbutler1 home" = [ "98.212.144.170/32" ]
+}
+app_allow_cidrs = {
+    "sbutler1 home" = [ "98.212.144.170/32" ]
+}
 
 deploy_bucket = "uiuc-sbutler1-sandbox"
 deploy_prefix = "vault/"

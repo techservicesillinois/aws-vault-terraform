@@ -58,6 +58,30 @@ variable "private_subnets" {
     description = "Private subnet names for resources not publically accessible."
 }
 
+variable "campus_cidrs" {
+    type        = map(list(string))
+    description = "Campus CIDR ranges to use for various security group rules if allow campus is true. The default should be fine, but if you override this you must specify all ranges."
+    default = {
+        UIUC = [
+            "72.36.64.0/18",
+            "128.174.0.0/16",
+            "130.126.0.0/16",
+            "192.17.0.0/16",
+            "10.192.0.0/10",
+            "172.16.0.0/13",
+        ]
+        UA = [
+            "64.22.176.0/20",
+            "204.93.0.0/19",
+        ]
+        NCSA = [
+            "141.142.0.0/16",
+            "198.17.196.0/25",
+            "172.24.0.0/13",
+        ]
+    }
+}
+
 variable "ssh_allow_campus" {
     type        = bool
     description = "Allow the campus subnet ranges to SSH to the Vault server instances."
@@ -65,9 +89,9 @@ variable "ssh_allow_campus" {
 }
 
 variable "ssh_allow_cidrs" {
-    type        = list(string)
-    description = "CIDRs allowed to SSH to the admin instance. Use 'ssh_allow_campus' to allow all campus ranges."
-    default     = []
+    type        = map(list(string))
+    description = "CIDRs allowed to SSH to the admin instance. Each key will be used as part of the description for the security group. Use 'ssh_allow_campus' to allow all campus ranges."
+    default     = {}
 }
 
 variable "app_allow_campus" {
@@ -77,9 +101,9 @@ variable "app_allow_campus" {
 }
 
 variable "app_allow_cidrs" {
-    type        = list(string)
-    description = "CIDRs allowed to access the Vault application ports. Use 'app_allow_campus' to allow all campus ranges."
-    default     = []
+    type        = map(list(string))
+    description = "CIDRs allowed to access the Vault application ports. Each key will be used as part of the description for the security group. Use 'app_allow_campus' to allow all campus ranges."
+    default     = {}
 }
 
 variable "deploy_bucket" {

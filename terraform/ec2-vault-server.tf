@@ -126,55 +126,49 @@ resource "aws_security_group" "vault_server_app" {
 
     vpc_id = data.aws_vpc.public.id
 
+    dynamic "ingress" {
+        for_each = merge(
+            var.app_allow_campus ? var.campus_cidrs : {},
+            var.app_allow_cidrs,
+        )
+
+        content {
+            description = "Vault application (${ingress.key})"
+
+            protocol  = "tcp"
+            from_port = 8200
+            to_port   = 8200
+
+            cidr_blocks = ingress.value
+        }
+    }
+
     ingress {
-        description = "Vault application"
+        description = "Vault application (load balancer)"
 
         protocol  = "tcp"
         from_port = 8200
         to_port   = 8200
 
-        cidr_blocks = distinct(
-            concat(
-                compact(
-                    [
-                        var.app_allow_campus ? "72.36.64.0/18" : "",
-                        var.app_allow_campus ? "128.174.0.0/16" : "",
-                        var.app_allow_campus ? "130.126.0.0/16" : "",
-                        var.app_allow_campus ? "192.17.0.0/16" : "",
-                        var.app_allow_campus ? "10.192.0.0/10" : "",
-                        var.app_allow_campus ? "172.16.0.0/13" : "",
-                        var.app_allow_campus ? "64.22.176.0/20" : "",
-                        var.app_allow_campus ? "204.93.0.0/19" : "",
-                        var.app_allow_campus ? "141.142.0.0/16" : "",
-                        var.app_allow_campus ? "198.17.196.0/25" : "",
-                        var.app_allow_campus ? "172.24.0.0/13" : "",
-                    ],
-                ),
-                var.app_allow_cidrs,
-            ),
-        )
-
         security_groups = [ aws_security_group.vault_server_lb.id ]
-        self            = true
     }
 
     ingress {
-        description = "Vault application (LB traffic)"
+        description = "Vault application (load balancer)"
 
         protocol  = "tcp"
         from_port = 8220
         to_port   = 8220
 
         security_groups = [ aws_security_group.vault_server_lb.id ]
-        self            = true
     }
 
     ingress {
         description = "Vault cluster"
 
         protocol  = "tcp"
-        from_port = 8201
-        to_port   = 8201
+        from_port = 8200
+        to_port   = 8220
 
         self = true
     }
@@ -203,31 +197,20 @@ resource "aws_security_group" "vault_server_ssh" {
 
     vpc_id = data.aws_vpc.public.id
 
-    ingress {
-        protocol  = "tcp"
-        from_port = 22
-        to_port   = 22
-
-        cidr_blocks = distinct(
-            concat(
-                compact(
-                    [
-                        var.ssh_allow_campus ? "72.36.64.0/18" : "",
-                        var.ssh_allow_campus ? "128.174.0.0/16" : "",
-                        var.ssh_allow_campus ? "130.126.0.0/16" : "",
-                        var.ssh_allow_campus ? "192.17.0.0/16" : "",
-                        var.ssh_allow_campus ? "10.192.0.0/10" : "",
-                        var.ssh_allow_campus ? "172.16.0.0/13" : "",
-                        var.ssh_allow_campus ? "64.22.176.0/20" : "",
-                        var.ssh_allow_campus ? "204.93.0.0/19" : "",
-                        var.ssh_allow_campus ? "141.142.0.0/16" : "",
-                        var.ssh_allow_campus ? "198.17.196.0/25" : "",
-                        var.ssh_allow_campus ? "172.24.0.0/13" : "",
-                    ],
-                ),
-                var.ssh_allow_cidrs,
-            ),
+    dynamic "ingress" {
+        for_each = merge(
+            var.ssh_allow_campus ? var.campus_cidrs : {},
+            var.ssh_allow_cidrs,
         )
+        content {
+            description = "SSH (${ingress.key})"
+
+            protocol  = "tcp"
+            from_port = 22
+            to_port   = 22
+
+            cidr_blocks = ingress.value
+        }
     }
 
     tags = {

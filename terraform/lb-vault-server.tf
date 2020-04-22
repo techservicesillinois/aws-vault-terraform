@@ -8,62 +8,38 @@ resource "aws_security_group" "vault_server_lb" {
 
     vpc_id = data.aws_vpc.public.id
 
-    ingress {
-        description = "Vault application"
-
-        protocol  = "tcp"
-        from_port = 8200
-        to_port   = 8200
-
-        cidr_blocks = distinct(
-            concat(
-                compact(
-                    [
-                        var.app_allow_campus ? "72.36.64.0/18" : "",
-                        var.app_allow_campus ? "128.174.0.0/16" : "",
-                        var.app_allow_campus ? "130.126.0.0/16" : "",
-                        var.app_allow_campus ? "192.17.0.0/16" : "",
-                        var.app_allow_campus ? "10.192.0.0/10" : "",
-                        var.app_allow_campus ? "172.16.0.0/13" : "",
-                        var.app_allow_campus ? "64.22.176.0/20" : "",
-                        var.app_allow_campus ? "204.93.0.0/19" : "",
-                        var.app_allow_campus ? "141.142.0.0/16" : "",
-                        var.app_allow_campus ? "198.17.196.0/25" : "",
-                        var.app_allow_campus ? "172.24.0.0/13" : "",
-                    ],
-                ),
-                var.app_allow_cidrs,
-            ),
+    dynamic "ingress" {
+        for_each = merge(
+            var.app_allow_campus ? var.campus_cidrs : {},
+            var.app_allow_cidrs,
         )
+
+        content {
+            description = "Vault application (${ingress.key})"
+
+            protocol  = "tcp"
+            from_port = 8200
+            to_port   = 8200
+
+            cidr_blocks = ingress.value
+        }
     }
 
-    ingress {
-        description = "Vault application"
-
-        protocol  = "tcp"
-        from_port = 443
-        to_port   = 443
-
-        cidr_blocks = distinct(
-            concat(
-                compact(
-                    [
-                        var.app_allow_campus ? "72.36.64.0/18" : "",
-                        var.app_allow_campus ? "128.174.0.0/16" : "",
-                        var.app_allow_campus ? "130.126.0.0/16" : "",
-                        var.app_allow_campus ? "192.17.0.0/16" : "",
-                        var.app_allow_campus ? "10.192.0.0/10" : "",
-                        var.app_allow_campus ? "172.16.0.0/13" : "",
-                        var.app_allow_campus ? "64.22.176.0/20" : "",
-                        var.app_allow_campus ? "204.93.0.0/19" : "",
-                        var.app_allow_campus ? "141.142.0.0/16" : "",
-                        var.app_allow_campus ? "198.17.196.0/25" : "",
-                        var.app_allow_campus ? "172.24.0.0/13" : "",
-                    ],
-                ),
-                var.app_allow_cidrs,
-            ),
+    dynamic "ingress" {
+        for_each = merge(
+            var.app_allow_campus ? var.campus_cidrs : {},
+            var.app_allow_cidrs,
         )
+
+        content {
+            description = "Vault application (${ingress.key})"
+
+            protocol  = "tcp"
+            from_port = 443
+            to_port   = 443
+
+            cidr_blocks = ingress.value
+        }
     }
 
     egress {
