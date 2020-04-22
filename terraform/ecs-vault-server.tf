@@ -49,9 +49,9 @@ data "template_file" "vault_server_containers" {
         server_mem = lookup(
             var.docker_instance2memoryres,
             var.vault_server_instance_type,
-            floor(var.docker_instance2memory[var.vault_server_instance_type] / 2),
+            floor(local.docker_instance2memory[var.vault_server_instance_type] / 2),
         )
-        server_cpu = var.docker_instance2cpu[var.vault_server_instance_type]
+        server_cpu = local.docker_instance2cpu[var.vault_server_instance_type]
     }
 }
 

@@ -163,7 +163,7 @@ variable "vault_server_public_fqdns" {
 variable "vault_server_instance_type" {
     type        = string
     description = "Instance type to launch for the servers."
-    default     = "t2.small"
+    default     = "t3.small"
 }
 
 variable "vault_server_image" {
@@ -207,7 +207,7 @@ variable "vault_storage_mariadb_version" {
 variable "vault_storage_mariadb_class" {
     type        = string
     description = "MariaDB instance class for RDS."
-    default     = "db.t2.small"
+    default     = "db.t3.small"
 }
 
 variable "vault_storage_mariadb_size" {
@@ -259,205 +259,15 @@ variable "vault_storage_mariadb_maintenance_window" {
 # Docker: map a host instance type to the main task's CPU reservation.
 # Calculated as 50% the number of CPU units available for the type.
 variable "docker_instance2cpu" {
-    type = map(number)
-    default = {
-        "t2.micro"     = 512
-        "t2.small"     = 512
-        "t2.medium"    = 1024
-        "t2.large"     = 1024
-        "t2.xlarge"    = 2048
-        "t2.2xlarge"   = 4096
-
-        "m5.large"     = 1024
-        "m5.xlarge"    = 2048
-        "m5.2xlarge"   = 4096
-        "m5.4xlarge"   = 8192
-        "m5.12xlarge"  = 24576
-        "m5.24xlarge"  = 49152
-        "m5d.large"    = 1024
-        "m5d.xlarge"   = 2048
-        "m5d.2xlarge"  = 4096
-        "m5d.4xlarge"  = 8192
-        "m5d.12xlarge" = 24576
-        "m5d.24xlarge" = 49152
-
-        "m4.large"     = 1024
-        "m4.xlarge"    = 2048
-        "m4.2xlarge"   = 4096
-        "m4.4xlarge"   = 8192
-        "m4.10xlarge"  = 20480
-        "m4.16xlarge"  = 32768
-
-        "m3.medium"    = 512
-        "m3.large"     = 1024
-        "m3.xlarge"    = 2048
-        "m3.2xlarge"   = 4096
-
-        "c5.large"     = 1024
-        "c5.xlarge"    = 2048
-        "c5.2xlarge"   = 4096
-        "c5.4xlarge"   = 8192
-        "c5.9xlarge"   = 18432
-        "c5.18xlarge"  = 36864
-        "c5d.large"    = 1024
-        "c5d.xlarge"   = 2048
-        "c5d.2xlarge"  = 4096
-        "c5d.4xlarge"  = 8192
-        "c5d.9xlarge"  = 18432
-        "c5d.18xlarge" = 36864
-
-        "c4.large"     = 1024
-        "c4.xlarge"    = 2048
-        "c4.2xlarge"   = 4096
-        "c4.4xlarge"   = 8192
-        "c4.8xlarge"   = 18432
-
-        "c3.large"     = 1024
-        "c3.xlarge"    = 2048
-        "c3.2xlarge"   = 4096
-        "c3.4xlarge"   = 8192
-        "c3.8xlarge"   = 16384
-
-        "g3.4xlarge"   = 8192
-        "g3.8xlarge"   = 16384
-        "g3.16xlarge"  = 32768
-
-        "g2.2xlarge"   = 4096
-        "g2.8xlarge"   = 16384
-
-        "p3.2xlarge"   = 4096
-        "p3.8xlarge"   = 16384
-        "p3.16xlarge"  = 32768
-
-        "p2.xlarge"    = 2048
-        "p2.8xlarge"   = 16384
-        "p2.16xlarge"  = 32768
-
-        "r4.large"     = 1024
-        "r4.xlarge"    = 2048
-        "r4.2xlarge"   = 4096
-        "r4.4xlarge"   = 8192
-        "r4.8xlarge"   = 16384
-        "r4.16xlarge"  = 32768
-
-        "r3.large"     = 1024
-        "r3.xlarge"    = 2048
-        "r3.2xlarge"   = 4096
-        "r3.4xlarge"   = 8192
-        "r3.8xlarge"   = 16384
-
-        "x1e.xlarge"   = 2048
-        "x1e.2xlarge"  = 4096
-        "x1e.4xlarge"  = 8192
-        "x1e.8xlarge"  = 16384
-        "x1e.16xlarge" = 32768
-        "x1e.32xlarge" = 65536
-
-        "x1.16xlarge"  = 32768
-        "x1.32xlarge"  = 65536
-    }
+    type    = map(number)
+    default = {}
 }
 
 # Docker: map the host instance type to the main task's RAM limit.
 # Calculated as the (Total RAM) - 512M.
 variable "docker_instance2memory" {
-    type = map(number)
-    default = {
-        "t2.micro"     = 512
-        "t2.small"     = 1536
-        "t2.medium"    = 3584
-        "t2.large"     = 7680
-        "t2.xlarge"    = 15872
-        "t2.2xlarge"   = 32256
-
-        "m5.large"     = 7680
-        "m5.xlarge"    = 15872
-        "m5.2xlarge"   = 32256
-        "m5.4xlarge"   = 65024
-        "m5.12xlarge"  = 196096
-        "m5.24xlarge"  = 392704
-        "m5d.large"    = 7680
-        "m5d.xlarge"   = 15872
-        "m5d.2xlarge"  = 32256
-        "m5d.4xlarge"  = 65024
-        "m5d.12xlarge" = 196096
-        "m5d.24xlarge" = 390656
-
-        "m4.large"     = 7680
-        "m4.xlarge"    = 15872
-        "m4.2xlarge"   = 32256
-        "m4.4xlarge"   = 65024
-        "m4.10xlarge"  = 163328
-        "m4.16xlarge"  = 261632
-
-        "m3.medium"    = 3328
-        "m3.large"     = 7168
-        "m3.xlarge"    = 14848
-        "m3.2xlarge"   = 30208
-
-        "c5.large"     = 3584
-        "c5.xlarge"    = 7680
-        "c5.2xlarge"   = 15872
-        "c5.4xlarge"   = 32256
-        "c5.9xlarge"   = 73216
-        "c5.18xlarge"  = 146944
-        "c5d.large"    = 3584
-        "c5d.xlarge"   = 7680
-        "c5d.2xlarge"  = 15872
-        "c5d.4xlarge"  = 32256
-        "c5d.9xlarge"  = 73216
-        "c5d.18xlarge" = 146944
-
-        "c4.large"     = 3328
-        "c4.xlarge"    = 7168
-        "c4.2xlarge"   = 14848
-        "c4.4xlarge"   = 30208
-        "c4.8xlarge"   = 60928
-
-        "c3.large"     = 3328
-        "c3.xlarge"    = 7168
-        "c3.2xlarge"   = 14848
-        "c3.4xlarge"   = 30208
-        "c3.8xlarge"   = 60928
-
-        "g3.4xlarge"   = 124416
-        "g3.8xlarge"   = 249344
-        "g3.16xlarge"  = 499200
-
-        "g2.2xlarge"   = 14848
-        "g2.8xlarge"   = 60928
-
-        "p3.2xlarge"   = 61952
-        "p3.8xlarge"   = 249344
-        "p3.16xlarge"  = 499200
-
-        "p2.xlarge"    = 61952
-        "p2.8xlarge"   = 499200
-        "p2.16xlarge"  = 749056
-
-        "r4.large"     = 15104
-        "r4.xlarge"    = 30720
-        "r4.2xlarge"   = 61952
-        "r4.4xlarge"   = 124416
-        "r4.8xlarge"   = 249344
-        "r4.16xlarge"  = 499200
-
-        "r3.large"     = 15104
-        "r3.xlarge"    = 30720
-        "r3.2xlarge"   = 61952
-        "r3.4xlarge"   = 124416
-        "r3.8xlarge"   = 249344
-
-        "x1e.xlarge"   = 124416
-        "x1e.2xlarge"  = 249344
-        "x1e.4xlarge"  = 499200
-        "x1e.8xlarge"  = 998912
-        "x1e.16xlarge" = 1998336
-        "x1e.32xlarge" = 3997184
-
-        "x1.16xlarge"  = 998912
-        "x1.32xlarge"  = 1998336
-    }
+    type    = map(number)
+    default = {}
 }
 
 # Docker: map the host instance type to the main task's RAM reservation.

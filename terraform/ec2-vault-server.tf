@@ -244,6 +244,10 @@ resource "aws_instance" "vault_server" {
 
     user_data = data.template_cloudinit_config.vault_server_userdata[count.index].rendered
 
+    credit_specification {
+        cpu_credits = contains(["t2", "t3"], substr(var.vault_server_instance_type, 0, 2)) ? "unlimited" : null
+    }
+
     root_block_device {
         volume_type = "gp2"
         volume_size = 30
