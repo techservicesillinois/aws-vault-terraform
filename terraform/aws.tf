@@ -6,12 +6,12 @@ data "aws_region" "current" {}
 
 data "aws_caller_identity" "current" {}
 
-data "aws_ami" "ecs_optimized" {
+data "aws_ami" "ecs_optimized2" {
     most_recent = true
 
     filter {
         name   = "name"
-        values = [ "amzn-ami-*-amazon-ecs-optimized" ]
+        values = [ "amzn2-ami-ecs-*-ebs" ]
     }
     filter {
         name   = "virtualization-type"

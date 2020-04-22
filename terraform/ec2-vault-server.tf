@@ -8,14 +8,6 @@ locals {
         region  = data.aws_region.current.name
         contact = var.contact
 
-        sss_bindcreds_bucket = var.deploy_bucket
-        sss_bindcreds_object = "${var.deploy_prefix}ldap-credentials.txt"
-        sss_allow_groups     = lower(join(", ", var.vault_server_admin_groups))
-
-        ssh_allow_groups = lower(
-            join(" ", formatlist("\"%s\"", var.vault_server_admin_groups)),
-        )
-
         sudo_admin_groups = var.vault_server_admin_groups
     }
 
@@ -67,7 +59,16 @@ data "template_file" "vault_server_configscript" {
     template = file("${path.module}/templates/cloud-init/ecs-configscript.sh.tpl")
 
     vars = {
+        project      = var.project
         cluster_name = aws_ecs_cluster.vault_server.name
+
+        ssh_allow_groups = lower(
+            join(" ", formatlist("\"%s\"", var.vault_server_admin_groups)),
+        )
+
+        sss_bindcreds_bucket = var.deploy_bucket
+        sss_bindcreds_object = "${var.deploy_prefix}ldap-credentials.txt"
+        sss_allow_groups     = lower(join(", ", var.vault_server_admin_groups))
     }
 }
 
@@ -78,6 +79,16 @@ data "template_cloudinit_config" "vault_server_userdata" {
         filename     = "init.sh"
         content_type = "text/cloud-boothook"
         content      = data.template_file.vault_server_configscript.rendered
+    }
+
+    part {
+        filename     = "urls.txt"
+        content_type = "text/x-include-url"
+        content = <<HERE
+https://static.ics.illinois.edu/cloud-init/20200421/sss.sh
+https://static.ics.illinois.edu/cloud-init/20200421/cis.sh
+https://static.ics.illinois.edu/cloud-init/20200421/ecslogs.yml
+HERE
     }
 
     part {
@@ -232,7 +243,7 @@ resource "aws_security_group" "vault_server_ssh" {
 resource "aws_instance" "vault_server" {
     count = length(data.aws_subnet.public)
 
-    ami                  = data.aws_ami.ecs_optimized.id
+    ami                  = data.aws_ami.ecs_optimized2.id
     instance_type        = var.vault_server_instance_type
     key_name             = var.key_name
     iam_instance_profile = aws_iam_instance_profile.vault_server.name
@@ -252,19 +263,7 @@ resource "aws_instance" "vault_server" {
 
     root_block_device {
         volume_type = "gp2"
-        volume_size = 8
-
-        encrypted  = true
-        kms_key_id = aws_kms_key.vault.arn
-
-        delete_on_termination = true
-    }
-
-    ebs_block_device {
-        device_name = "/dev/xvdcz"
-
-        volume_type = "gp2"
-        volume_size = 22
+        volume_size = 30
 
         encrypted  = true
         kms_key_id = aws_kms_key.vault.arn

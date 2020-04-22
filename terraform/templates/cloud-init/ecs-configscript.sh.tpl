@@ -16,6 +16,21 @@ write_file () {
     chown "$fileown" "$file"
 }
 
+write_file /etc/opt/illinois/cloud-init/cis.conf <<EOF
+ip_forward=1
+ssh_allow_groups='${ssh_allow_groups}'
+EOF
+
+write_file /etc/opt/illinois/cloud-init/ecslogs.conf <<EOF
+loggroup_prefix='/${project}/ec2-instances'
+EOF
+
+write_file /etc/opt/illinois/cloud-init/sss.conf <<EOF
+sss_allow_groups='${sss_allow_groups}'
+sss_bindcreds_bucket='${sss_bindcreds_bucket}'
+sss_bindcreds_object='${sss_bindcreds_object}'
+EOF
+
 write_file /etc/ecs/ecs.config <<EOF
 ECS_CLUSTER=${cluster_name}
 ECS_ENABLE_TASK_IAM_ROLE=true
