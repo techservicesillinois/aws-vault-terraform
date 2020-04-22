@@ -181,7 +181,7 @@ path "*" {
 EOF
 
     echoerr "INFO: enabling ldap auth"
-    vault auth enable ldap
+    vault auth enable -listing-visibility=unauth ldap
     _ldap_accessor="$(vault auth list | jq -r '."ldap/".accessor')"
 
     echoerr "INFO: configuring ldap auth"
