@@ -580,7 +580,7 @@ be specified.**
 | vault_server_private_ips                  | \[\]                                  | \[ "10.224.255.51", "10.224.255.181" \]                                               | List of private IP addresses in the subnet. This is useful if you're carefully managing the private IP space of your VPC. Otherwise, AWS will choose unallocated IPs for you. If you specify this variable you must choose an IP for each subnet in the `public_subnets` list. |
 | vault_server_fqdn                         | ""                                    | "vault.example.illinois.edu"                                                          | Primary FQDN of the vault server, present in the SSL certificate as the CN. |
 | vault_server_public_fqdns :exclamation:   |                                       | \[ "server-a.vault.example.illinois.edu", "server-b.vault.example.illinois.edu" \]    | List of the FQDN of the vault server EC2 instances. You must specify a FQDN here for each subnet in the `public_subnets` variable. |
-| vault_server_instance_type                | "t2.small"                            | "t2.medium"                                                                           | Instance type to use for the vault servers; do not use smaller than t2.micro. |
+| vault_server_instance_type                | "t3.small"                            | "t3.medium"                                                                           | Instance type to use for the vault servers; do not use smaller than t3.micro. |
 | vault_server_image                        | "vault:latest"                        | "vault:0.10.3"                                                                        | Docker image to use for the vault server. If you use the "latest" tag then each run of the terraform will make sure the image is the most current. Production might want to use a specific version tag. |
 | vault_helper_image                        | "sbutler/uiuc-vault-helper:latest"    | "sbutler/uiuc-vault-helper:latest"                                                    | Docker image to use for the vault helper. If you use the "latest" tag then each run of the terraform will make sure the image is the most current. Production might want to use a specific version tag. |
 | vault_storage                             | \[ "dynamodb" \]                      | \[ "mariadb" \]                                                                       | List of storage backends to provision with terraform. The first will be used as the primary, the others unused by vault server. Multiple backends are useful for doing migrations between them. Supported values: dynamodb, mariadb |
@@ -607,7 +607,7 @@ DynamoDB then you should enable these features.
 | Name                                      | Default                               | Example                                                                               | Description |
 | ----------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------- | ----------- |
 | vault_storage_mariadb_version             | "10.2"                                | "10.0"                                                                                | Version of the database engine to use, major and minor. Do not specify patch levels so that automatic maintenance happens. |
-| vault_storage_mariadb_class               | "db.t2.small"                         | "db.t2.medium"                                                                        | RDS instance class to use. |
+| vault_storage_mariadb_class               | "db.t3.small"                         | "db.t3.medium"                                                                        | RDS instance class to use. |
 | vault_storage_mariadb_size                | 5                                     | 20                                                                                    | Size of the storage to attach, in GB. This value must be at least "5" and AWS recommends at least "20". |
 | vault_storage_mariadb_max_parallel        | 0                                     | 130                                                                                   | Maximum number of parallel operations to perform. This should not be more than the max_connections setting. If 0 then the terraform choose a value that's 90% of the max_connections. |
 | vault_storage_mariadb_admin_username      | "vault_admin"                         | "my_admin"                                                                            | Name of the administrator user for the database when provisioning. The password is randomly generated. |
@@ -634,7 +634,7 @@ environment = "Test"
 project = "vault-exmp"
 key_name = "Vault Example"
 key_file = "~/.ssh/vault"
-enhanced_monitoring = "1"
+enhanced_monitoring = true
 public_subnets = [
     "techsvcsandbox-public1-a-net",
     "techsvcsandbox-public1-b-net",
@@ -658,16 +658,9 @@ vault_server_public_fqdns = [
     "server-a.vault.example.illinois.edu",
     "server-b.vault.example.illinois.edu",
 ]
-vault_server_instance_type = "t2.medium"
+vault_server_instance_type = "t3.medium"
 vault_server_image = "vault:latest"
 vault_helper_image = "sbutler/uiuc-vault-helper:latest"
-
-vault_storage_max_rcu = "100"
-vault_storage_min_rcu = "2"
-vault_storage_max_wcu = "100"
-vault_storage_min_wcu = "2"
-vault_storage_rcu_target = "80"
-vault_storage_wcu_target = "80"
 ```
 
 
