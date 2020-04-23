@@ -62,6 +62,8 @@ data "template_file" "vault_server_configscript" {
         project      = var.project
         cluster_name = aws_ecs_cluster.vault_server.name
 
+        metrics_collection_interval = var.enhanced_monitoring ? 60 : 300
+
         ssh_allow_groups = lower(
             join(" ", formatlist("\"%s\"", var.vault_server_admin_groups)),
         )

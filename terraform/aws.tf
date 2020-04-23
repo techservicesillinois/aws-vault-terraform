@@ -25,6 +25,14 @@ data "aws_ami" "ecs_optimized2" {
     owners = [ "amazon" ]
 }
 
+data "aws_iam_policy" "AmazonEC2ContainerServiceforEC2Role" {
+    arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+}
+
+data "aws_iam_policy" "CloudWatchAgentServerPolicy" {
+    arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
 data "aws_iam_policy_document" "instance_assume_role" {
     statement {
         effect  = "Allow"

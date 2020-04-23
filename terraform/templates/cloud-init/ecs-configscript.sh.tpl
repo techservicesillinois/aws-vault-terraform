@@ -23,6 +23,8 @@ EOF
 
 write_file /etc/opt/illinois/cloud-init/ecslogs.conf <<EOF
 loggroup_prefix='/${project}/ec2-instances'
+metrics_collection_interval=${metrics_collection_interval}
+net_resources=eth0
 EOF
 
 write_file /etc/opt/illinois/cloud-init/sss.conf <<EOF

@@ -6,27 +6,6 @@ data "aws_iam_policy_document" "vault_server_instance" {
     statement {
         effect = "Allow"
         actions = [
-            "logs:DescribeLogStreams",
-        ]
-        resources = [
-            "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*",
-        ]
-    }
-
-    statement {
-        effect = "Allow"
-        actions = [
-            "logs:CreateLogStream",
-            "logs:PutLogEvents",
-        ]
-        resources = [
-            aws_cloudwatch_log_group.vault_server_containers.arn,
-        ]
-    }
-
-    statement {
-        effect = "Allow"
-        actions = [
             "s3:GetObject*",
         ]
         resources = [
@@ -183,16 +162,16 @@ resource "aws_iam_role" "vault_server" {
 # Base required roles for any ECS Cluster Instance that logs to CloudWatch.
 resource "aws_iam_role_policy_attachment" "vault_server_AmazonEC2ContainerServiceforEC2Role" {
     role       = aws_iam_role.vault_server.name
-    policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+    policy_arn = data.aws_iam_policy.AmazonEC2ContainerServiceforEC2Role.arn
 
     lifecycle {
         create_before_destroy = true
     }
 }
 
-resource "aws_iam_role_policy_attachment" "vault_server_instance_logs" {
+resource "aws_iam_role_policy_attachment" "vault_server_CloudWatchAgentServerPolicy" {
     role       = aws_iam_role.vault_server.name
-    policy_arn = aws_iam_policy.instance_logs.arn
+    policy_arn = data.aws_iam_policy.CloudWatchAgentServerPolicy.arn
 
     lifecycle {
         create_before_destroy = true
@@ -213,7 +192,7 @@ resource "aws_iam_role_policy_attachment" "vault_server_instance" {
 resource "null_resource" "wait_vault_server_role" {
     depends_on = [
         aws_iam_role_policy_attachment.vault_server_AmazonEC2ContainerServiceforEC2Role,
-        aws_iam_role_policy_attachment.vault_server_instance_logs,
+        aws_iam_role_policy_attachment.vault_server_CloudWatchAgentServerPolicy,
         aws_iam_role_policy_attachment.vault_server_instance,
     ]
 

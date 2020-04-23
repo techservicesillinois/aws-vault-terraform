@@ -61,6 +61,11 @@ data "template_file" "vault_server_containers" {
 
 resource "aws_ecs_cluster" "vault_server" {
     name = "${var.project}-server"
+
+    setting {
+        name  = "containerInsights"
+        value = "enabled"
+    }
 }
 
 resource "aws_ecs_service" "vault_server" {
