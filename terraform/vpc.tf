@@ -2,6 +2,12 @@
 # Data
 # ===================================================================
 
+data "aws_availability_zone" "public" {
+    count = length(var.public_subnets)
+
+    name = data.aws_subnet.public[count.index].availability_zone
+}
+
 data "aws_subnet" "public" {
     count = length(var.public_subnets)
 
