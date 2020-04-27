@@ -18,7 +18,7 @@ data "aws_iam_policy_document" "vault_key" {
     statement {
         sid = "key-logs"
 
-        effect = "Allow"
+        effect  = "Allow"
         actions = [
             "kms:Encrypt*",
             "kms:Decrypt*",
@@ -34,9 +34,25 @@ data "aws_iam_policy_document" "vault_key" {
     }
 
     statement {
+        sid = "key-cloudwatch"
+
+        effect  = "Allow"
+        actions = [
+            "kms:Decrypt",
+            "kms:GenerateDataKey",
+        ]
+        principals {
+            type        = "Service"
+            identifiers = [ "cloudwatch.amazonaws.com" ]
+        }
+        resources = [ "*" ]
+    }
+
+
+    statement {
         sid = "key-user-roles"
 
-        effect = "Allow"
+        effect  = "Allow"
         actions = [
             "kms:Decrypt",
             "kms:Encrypt",
